@@ -11,7 +11,7 @@ vi.mock('@supabase/ssr', () => ({
 }))
 
 // Import after mocks
-const { middleware } = await import('@/middleware')
+const { proxy: middleware } = await import('@/proxy')
 
 function makeRequest(path: string, baseUrl = 'http://localhost:3000') {
   return new NextRequest(new URL(path, baseUrl))
