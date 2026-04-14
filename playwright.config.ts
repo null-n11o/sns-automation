@@ -30,7 +30,8 @@ export default defineConfig({
   projects: [
     {
       name: 'setup',
-      testMatch: '**/fixtures/auth.setup.ts',
+      testDir: './e2e/fixtures',
+      testMatch: '**/auth.setup.ts',
     },
     {
       name: 'admin',
