@@ -3,6 +3,19 @@ import * as dotenv from 'dotenv'
 
 dotenv.config({ path: '.env.test.local' })
 
+const requiredEnvVars = [
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'ENCRYPTION_KEY',
+] as const
+
+for (const key of requiredEnvVars) {
+  if (!process.env[key]) {
+    throw new Error(`Missing required env var: ${key}. Copy .env.test.local.example to .env.test.local`)
+  }
+}
+
 export default defineConfig({
   testDir: './e2e/tests',
   fullyParallel: false,
@@ -12,7 +25,7 @@ export default defineConfig({
   reporter: [['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:3001',
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
   },
   projects: [
     {
