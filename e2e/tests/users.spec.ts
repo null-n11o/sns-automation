@@ -24,6 +24,9 @@ test.describe('ユーザー管理ページ（admin）', () => {
     await usersPage.inviteUser(newEmail, 'NewUser123!')
     await expect(usersPage.successMessage).toHaveText('ユーザーを追加しました')
     await expect(usersPage.getUserRow(newEmail)).toBeVisible()
+
+    // クリーンアップ
+    await usersPage.deleteUser(newEmail)
   })
 
   test('ユーザーを削除すると一覧から消える', async ({ page }) => {
