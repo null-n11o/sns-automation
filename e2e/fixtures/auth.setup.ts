@@ -2,12 +2,15 @@ import { test as setup } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import fs from 'fs'
 import path from 'path'
-
-const ADMIN_EMAIL = 'e2e-admin@test.com'
-const ADMIN_PASSWORD = 'Admin123456!'
-const OPERATOR_EMAIL = 'e2e-operator@test.com'
-const OPERATOR_PASSWORD = 'Operator123456!'
-const TEST_COMPANY_ID = '00000000-0000-0000-0000-000000000001'
+import {
+  ADMIN_EMAIL,
+  ADMIN_PASSWORD,
+  OPERATOR_EMAIL,
+  OPERATOR_PASSWORD,
+  LOGINTEST_EMAIL,
+  LOGINTEST_PASSWORD,
+  TEST_COMPANY_ID,
+} from './test-users'
 
 const authDir = path.join(__dirname, '.auth')
 const adminFile = path.join(authDir, 'admin.json')
@@ -56,6 +59,13 @@ setup.describe('create auth states', () => {
 
     await ensureUser(service, ADMIN_EMAIL, ADMIN_PASSWORD, 'admin')
     await ensureUser(service, OPERATOR_EMAIL, OPERATOR_PASSWORD, 'operator')
+    await ensureUser(service, LOGINTEST_EMAIL, LOGINTEST_PASSWORD, 'operator')
+
+    // テスト前に企業名を初期状態にリセット
+    await service
+      .from('companies')
+      .update({ name: 'E2E Test Company' })
+      .eq('id', TEST_COMPANY_ID)
   })
 
   setup('save admin auth state', async ({ page }) => {

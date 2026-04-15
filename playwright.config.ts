@@ -36,9 +36,9 @@ export default defineConfig({
     {
       name: 'admin',
       testMatch: [
-        '**/tests/auth.spec.ts',
         '**/tests/companies.spec.ts',
         '**/tests/users.spec.ts',
+        '**/tests/auth.spec.ts',
       ],
       use: {
         ...devices['Desktop Chrome'],

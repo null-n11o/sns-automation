@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test'
 import { LoginPage } from '../pages/login.page'
 import { SidebarPage } from '../pages/sidebar.page'
+import { LOGINTEST_EMAIL, LOGINTEST_PASSWORD } from '../fixtures/test-users'
 
 // このファイルは admin プロジェクトで実行される
-// 未認証テストは storageState を上書きして実行する
+// ログイン/ログアウトテストは専用ユーザーを使い、admin.json のセッションを汚染しない
 
 test.describe('未認証', () => {
   test.use({ storageState: { cookies: [], origins: [] } })
@@ -11,7 +12,7 @@ test.describe('未認証', () => {
   test('正しい認証情報でログインすると /posts に遷移する', async ({ page }) => {
     const loginPage = new LoginPage(page)
     await loginPage.goto()
-    await loginPage.login('e2e-admin@test.com', 'Admin123456!')
+    await loginPage.login(LOGINTEST_EMAIL, LOGINTEST_PASSWORD)
     await expect(page).toHaveURL('/posts')
   })
 
@@ -30,11 +31,17 @@ test.describe('未認証', () => {
 })
 
 test.describe('認証済み', () => {
-  // admin の storageState を使用（プロジェクト設定から引き継ぐ）
+  // ログアウトはセッショントークンをサーバー側で無効化するため、
+  // admin.json の storageState を汚染しないよう手動ログインで独立したセッションを使う
+  test.use({ storageState: { cookies: [], origins: [] } })
 
   test('ログアウトすると /login にリダイレクトされる', async ({ page }) => {
+    const loginPage = new LoginPage(page)
+    await loginPage.goto()
+    await loginPage.login(LOGINTEST_EMAIL, LOGINTEST_PASSWORD)
+    await expect(page).toHaveURL('/posts')
+
     const sidebar = new SidebarPage(page)
-    await page.goto('/posts')
     await sidebar.logout()
     await expect(page).toHaveURL('/login')
   })
