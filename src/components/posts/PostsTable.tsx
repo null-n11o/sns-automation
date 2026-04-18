@@ -28,6 +28,7 @@ export function PostsTable({ initialPosts, accounts }: Props) {
   const [editContent, setEditContent] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [publishingId, setPublishingId] = useState<string | null>(null)
+  const [generating, setGenerating] = useState(false)
 
   const filteredPosts = posts
     .filter(p => p.account_id === selectedAccountId)
@@ -59,6 +60,22 @@ export function PostsTable({ initialPosts, accounts }: Props) {
     })
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, content: editContent } : p))
     setEditingId(null)
+  }
+
+  async function generateWeeklyPosts() {
+    setGenerating(true)
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ account_id: selectedAccountId }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      await refreshPosts()
+    } else {
+      alert(`生成エラー: ${data.error}`)
+    }
+    setGenerating(false)
   }
 
   async function publishNow(postId: string) {
@@ -96,7 +113,16 @@ export function PostsTable({ initialPosts, accounts }: Props) {
       {/* アクション */}
       <div className="flex justify-between items-center mb-4">
         <p className="text-sm text-gray-500">{filteredPosts.length} 件</p>
-        <Button onClick={() => setShowCreateModal(true)}>+ 新規投稿</Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={generateWeeklyPosts}
+            disabled={generating}
+          >
+            {generating ? '生成中...' : '1週間分を生成'}
+          </Button>
+          <Button onClick={() => setShowCreateModal(true)}>+ 新規投稿</Button>
+        </div>
       </div>
 
       {/* テーブル */}

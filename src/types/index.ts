@@ -48,7 +48,25 @@ export interface Post {
   status: PostStatus
   source: PostSource
   error_message: string | null
+  published_at: string | null
+  platform_post_id: string | null
   created_at: string
+}
+
+export interface PromptConfigHistory {
+  id: string
+  account_id: string
+  system_prompt: string
+  reference_data: string
+  changed_at: string
+  changed_by: 'ai' | 'manual'
+}
+
+export interface AccountMetrics {
+  id: string
+  account_id: string
+  fetched_at: string
+  followers_count: number
 }
 
 export interface PostMetrics {
