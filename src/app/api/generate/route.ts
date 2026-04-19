@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { generatePosts } from '@/lib/claude'
+import { analyzeAndImprove } from '@/lib/self-improve'
 import type { Platform } from '@/types'
 
 export async function POST(request: Request) {
@@ -9,7 +10,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const { account_id } = body
+  const { account_id, skip_self_improve = false } = body
   if (!account_id) return NextResponse.json({ error: 'account_id required' }, { status: 400 })
 
   const { data: account } = await supabase
@@ -19,6 +20,12 @@ export async function POST(request: Request) {
     .single()
   if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 })
 
+  // 自己改善ループ（メトリクスが十分あれば実行）
+  if (!skip_self_improve) {
+    await analyzeAndImprove(account_id, supabase)
+  }
+
+  // 最新の prompt_config を取得（自己改善後に更新されている場合もある）
   const { data: promptConfig } = await supabase
     .from('prompt_configs')
     .select('system_prompt, reference_data')
