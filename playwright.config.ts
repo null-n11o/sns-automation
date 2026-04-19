@@ -39,6 +39,7 @@ export default defineConfig({
         '**/tests/companies.spec.ts',
         '**/tests/users.spec.ts',
         '**/tests/auth.spec.ts',
+        '**/tests/analytics.spec.ts',
       ],
       use: {
         ...devices['Desktop Chrome'],
