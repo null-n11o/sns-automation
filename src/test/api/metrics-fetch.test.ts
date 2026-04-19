@@ -20,9 +20,13 @@ function makeRequest(secret = 'test-secret') {
 
 function makeSupabaseMock(publishedPosts: object[]) {
   const insert = vi.fn().mockResolvedValue({ error: null })
-  const selectPosts = vi.fn().mockResolvedValue({ data: publishedPosts })
+  const postsChain = {
+    eq: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(),
+    then: (resolve: (value: { data: object[] }) => void) => resolve({ data: publishedPosts }),
+  }
   const from = vi.fn().mockImplementation((table: string) => {
-    if (table === 'posts') return { select: selectPosts }
+    if (table === 'posts') return { select: vi.fn().mockReturnValue(postsChain) }
     if (table === 'post_metrics') return { insert }
     return {}
   })

@@ -22,6 +22,9 @@ export async function GET(request: Request) {
   const { data: posts } = await supabase
     .from('posts')
     .select('id, platform_post_id, published_at, accounts(platform, access_token, platform_user_id), post_metrics(fetched_at)')
+    .eq('status', 'published')
+    .not('published_at', 'is', null)
+    .not('platform_post_id', 'is', null)
 
   if (!posts?.length) return NextResponse.json({ fetched: 0 })
 
