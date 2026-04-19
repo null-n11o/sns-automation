@@ -1,13 +1,15 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from 'vitest'
 
-const { mockGeneratePosts, mockCreateClient } = vi.hoisted(() => ({
+const { mockGeneratePosts, mockCreateClient, mockAnalyzeAndImprove } = vi.hoisted(() => ({
   mockGeneratePosts: vi.fn(),
   mockCreateClient: vi.fn(),
+  mockAnalyzeAndImprove: vi.fn().mockResolvedValue(null), // 通常はnullを返す（スキップ）
 }))
 
 vi.mock('@/lib/claude', () => ({ generatePosts: mockGeneratePosts }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: mockCreateClient }))
+vi.mock('@/lib/self-improve', () => ({ analyzeAndImprove: mockAnalyzeAndImprove }))
 
 import { POST } from '@/app/api/generate/route'
 
