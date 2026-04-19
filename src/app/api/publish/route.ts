@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   const account = post.accounts as Record<string, string | null>
 
   try {
-    await publishPost({
+    const platformPostId = await publishPost({
       platform: account.platform as Platform,
       content: post.content,
       access_token: account.access_token,
@@ -31,7 +31,15 @@ export async function POST(request: Request) {
       platform_user_id: account.platform_user_id,
     })
 
-    await supabase.from('posts').update({ status: 'published' }).eq('id', post_id)
+    await supabase
+      .from('posts')
+      .update({
+        status: 'published',
+        published_at: new Date().toISOString(),
+        platform_post_id: platformPostId,
+      })
+      .eq('id', post_id)
+
     return NextResponse.json({ ok: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
