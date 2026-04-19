@@ -1,6 +1,6 @@
 const THREADS_API_BASE = 'https://graph.threads.net/v1.0'
 
-interface ThreadsMetrics {
+export interface ThreadsMetrics {
   impressions: number
   likes: number
   replies: number
@@ -15,7 +15,7 @@ export async function fetchThreadsPostMetrics({
   accessToken: string
 }): Promise<ThreadsMetrics> {
   const url = new URL(`${THREADS_API_BASE}/${mediaId}/insights`)
-  url.searchParams.set('metric', 'views,likes,replies,reposts,quotes')
+  url.searchParams.set('metric', 'views,likes,replies,reposts')
   url.searchParams.set('access_token', accessToken)
 
   const res = await fetch(url.toString())

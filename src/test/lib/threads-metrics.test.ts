@@ -14,7 +14,6 @@ describe('fetchThreadsPostMetrics', () => {
           { name: 'likes', values: [{ value: 56 }] },
           { name: 'replies', values: [{ value: 7 }] },
           { name: 'reposts', values: [{ value: 8 }] },
-          { name: 'quotes', values: [{ value: 2 }] },
         ],
       }),
     }))
