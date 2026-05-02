@@ -34,9 +34,11 @@ export async function createAccount(formData: FormData) {
   const apiSecret = formData.get('api_secret') as string | null
   const accessToken = formData.get('access_token') as string | null
   const accessTokenSecret = formData.get('access_token_secret') as string | null
+  const platformUserId = (formData.get('platform_user_id') as string | null)?.trim() || null
 
   if (!platform || !accountName) return { error: 'プラットフォームとアカウント名は必須です' }
   if (platform !== 'x' && platform !== 'threads') return { error: '無効なプラットフォームです' }
+  if (platform === 'threads' && !platformUserId) return { error: 'ThreadsはUser IDが必須です' }
 
   const postingTimes = postingTimesRaw
     .split(',')
@@ -56,6 +58,7 @@ export async function createAccount(formData: FormData) {
     api_secret: encryptIfPresent(apiSecret),
     access_token: encryptIfPresent(accessToken),
     access_token_secret: encryptIfPresent(accessTokenSecret),
+    platform_user_id: platformUserId,
   })
 
   if (error) return { error: error.message }
