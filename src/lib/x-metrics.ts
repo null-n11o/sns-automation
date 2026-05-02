@@ -35,7 +35,7 @@ export async function fetchXPostMetrics({
     })
     const metrics = tweet.data.public_metrics
     return {
-      impressions: 0,
+      impressions: 0, // X Free プランでは impression_count は取得不可
       likes: metrics?.like_count ?? 0,
       reposts: metrics?.retweet_count ?? 0,
       replies: metrics?.reply_count ?? 0,

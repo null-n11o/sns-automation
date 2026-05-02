@@ -123,4 +123,32 @@ describe('GET /api/metrics/fetch', () => {
       ])
     )
   })
+
+  it('X の投稿で認証情報が不完全な場合はスキップされる', async () => {
+    const now = new Date()
+    const publishedAt = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString()
+
+    makeSupabaseMock([
+      {
+        id: 'post-3',
+        platform_post_id: 'tweet-789',
+        published_at: publishedAt,
+        accounts: {
+          platform: 'x',
+          access_token: 'x-token',
+          api_key: 'x-api-key',
+          api_secret: null, // 不完全
+          access_token_secret: 'x-token-secret',
+          platform_user_id: null,
+        },
+        post_metrics: [],
+      },
+    ])
+
+    const res = await GET(makeRequest())
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.fetched).toBe(0)
+  })
 })
