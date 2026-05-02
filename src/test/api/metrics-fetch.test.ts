@@ -1,12 +1,14 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 
-const { mockFetchMetrics, mockCreateServiceClient } = vi.hoisted(() => ({
-  mockFetchMetrics: vi.fn(),
+const { mockFetchThreadsMetrics, mockFetchXMetrics, mockCreateServiceClient } = vi.hoisted(() => ({
+  mockFetchThreadsMetrics: vi.fn(),
+  mockFetchXMetrics: vi.fn(),
   mockCreateServiceClient: vi.fn(),
 }))
 
-vi.mock('@/lib/threads-metrics', () => ({ fetchThreadsPostMetrics: mockFetchMetrics }))
+vi.mock('@/lib/threads-metrics', () => ({ fetchThreadsPostMetrics: mockFetchThreadsMetrics }))
+vi.mock('@/lib/x-metrics', () => ({ fetchXPostMetrics: mockFetchXMetrics }))
 vi.mock('@/lib/supabase/server', () => ({ createServiceClient: mockCreateServiceClient }))
 vi.mock('@/lib/crypto', () => ({ decrypt: (s: string) => s }))
 
@@ -52,21 +54,28 @@ describe('GET /api/metrics/fetch', () => {
     expect(body.fetched).toBe(0)
   })
 
-  it('メトリクスを取得してDBに保存する', async () => {
+  it('Threads の投稿のメトリクスを取得してDBに保存する', async () => {
     const now = new Date()
-    const publishedAt = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString() // 2時間前
+    const publishedAt = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString()
 
     const { insert } = makeSupabaseMock([
       {
         id: 'post-1',
         platform_post_id: 'media-123',
         published_at: publishedAt,
-        accounts: { platform: 'threads', access_token: 'token', platform_user_id: 'uid' },
+        accounts: {
+          platform: 'threads',
+          access_token: 'token',
+          api_key: null,
+          api_secret: null,
+          access_token_secret: null,
+          platform_user_id: 'uid',
+        },
         post_metrics: [],
       },
     ])
 
-    mockFetchMetrics.mockResolvedValue({ impressions: 100, likes: 10, replies: 2, reposts: 3 })
+    mockFetchThreadsMetrics.mockResolvedValue({ impressions: 100, likes: 10, replies: 2, reposts: 3 })
 
     const res = await GET(makeRequest())
     const body = await res.json()
@@ -76,6 +85,41 @@ describe('GET /api/metrics/fetch', () => {
     expect(insert).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({ post_id: 'post-1', impressions: 100, likes: 10 }),
+      ])
+    )
+  })
+
+  it('X の投稿のメトリクスを取得してDBに保存する', async () => {
+    const now = new Date()
+    const publishedAt = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString()
+
+    const { insert } = makeSupabaseMock([
+      {
+        id: 'post-2',
+        platform_post_id: 'tweet-456',
+        published_at: publishedAt,
+        accounts: {
+          platform: 'x',
+          access_token: 'x-token',
+          api_key: 'x-api-key',
+          api_secret: 'x-api-secret',
+          access_token_secret: 'x-token-secret',
+          platform_user_id: null,
+        },
+        post_metrics: [],
+      },
+    ])
+
+    mockFetchXMetrics.mockResolvedValue({ impressions: 0, likes: 20, replies: 5, reposts: 8 })
+
+    const res = await GET(makeRequest())
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.fetched).toBe(1)
+    expect(insert).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ post_id: 'post-2', impressions: 0, likes: 20 }),
       ])
     )
   })
