@@ -26,6 +26,7 @@ export function PostsTable({ initialPosts, accounts }: Props) {
   const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id ?? '')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
+  const [editScheduledDate, setEditScheduledDate] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [publishingId, setPublishingId] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
@@ -56,9 +57,11 @@ export function PostsTable({ initialPosts, accounts }: Props) {
     await fetch(`/api/posts/${postId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: editContent }),
+      body: JSON.stringify({ content: editContent, scheduled_date: editScheduledDate }),
     })
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, content: editContent } : p))
+    setPosts(prev => prev.map(p =>
+      p.id === postId ? { ...p, content: editContent, scheduled_date: editScheduledDate } : p
+    ))
     setEditingId(null)
   }
 
@@ -149,6 +152,12 @@ export function PostsTable({ initialPosts, accounts }: Props) {
                         rows={3}
                         className="text-sm"
                       />
+                      <input
+                        type="datetime-local"
+                        value={editScheduledDate}
+                        onChange={e => setEditScheduledDate(e.target.value)}
+                        className="text-sm border rounded px-2 py-1"
+                      />
                       <div className="flex gap-2">
                         <Button size="sm" onClick={() => saveEdit(post.id)}>保存</Button>
                         <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>キャンセル</Button>
@@ -189,7 +198,11 @@ export function PostsTable({ initialPosts, accounts }: Props) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => { setEditingId(post.id); setEditContent(post.content) }}
+                        onClick={() => {
+                          setEditingId(post.id)
+                          setEditContent(post.content)
+                          setEditScheduledDate(new Date(post.scheduled_date).toISOString().slice(0, 16))
+                        }}
                       >
                         編集
                       </Button>
