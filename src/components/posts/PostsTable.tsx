@@ -92,7 +92,7 @@ export function PostsTable({ initialPosts, accounts }: Props) {
     setPublishingId(null)
   }
 
-  const canEdit = (status: PostStatus) => status === 'draft' || status === 'review'
+  const canEdit = (status: PostStatus) => status === 'draft' || status === 'review' || status === 'ready'
 
   return (
     <div>
@@ -214,15 +214,6 @@ export function PostsTable({ initialPosts, accounts }: Props) {
                         disabled={publishingId === post.id}
                       >
                         {publishingId === post.id ? '投稿中...' : '今すぐ投稿'}
-                      </Button>
-                    )}
-                    {post.status === 'ready' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateStatus(post.id, 'draft')}
-                      >
-                        差し戻し
                       </Button>
                     )}
                   </div>
