@@ -10,13 +10,13 @@ export async function GET(request: Request) {
   }
 
   const supabase = await createServiceClient()
-  const today = new Date().toISOString().slice(0, 10)
+  const now = new Date().toISOString()
 
   const { data: posts } = await supabase
     .from('posts')
     .select('*, accounts(*)')
     .eq('status', 'ready')
-    .lte('scheduled_date', today)
+    .lte('scheduled_date', now)
 
   if (!posts?.length) {
     return NextResponse.json({ published: 0 })
