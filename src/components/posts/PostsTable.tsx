@@ -54,13 +54,14 @@ export function PostsTable({ initialPosts, accounts }: Props) {
   }
 
   async function saveEdit(postId: string) {
+    const utcScheduledDate = new Date(editScheduledDate).toISOString()
     await fetch(`/api/posts/${postId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: editContent, scheduled_date: editScheduledDate }),
+      body: JSON.stringify({ content: editContent, scheduled_date: utcScheduledDate }),
     })
     setPosts(prev => prev.map(p =>
-      p.id === postId ? { ...p, content: editContent, scheduled_date: editScheduledDate } : p
+      p.id === postId ? { ...p, content: editContent, scheduled_date: utcScheduledDate } : p
     ))
     setEditingId(null)
   }
@@ -201,7 +202,9 @@ export function PostsTable({ initialPosts, accounts }: Props) {
                         onClick={() => {
                           setEditingId(post.id)
                           setEditContent(post.content)
-                          setEditScheduledDate(new Date(post.scheduled_date).toISOString().slice(0, 16))
+                          const d = new Date(post.scheduled_date)
+                          const pad = (n: number) => String(n).padStart(2, '0')
+                          setEditScheduledDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`)
                         }}
                       >
                         編集

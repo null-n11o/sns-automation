@@ -1,8 +1,9 @@
 name: Publish Scheduled Posts
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'
+  # schedule は cron-job.org に移行済み
+  # schedule:
+  #   - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
