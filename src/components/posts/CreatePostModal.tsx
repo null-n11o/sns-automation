@@ -31,7 +31,7 @@ export function CreatePostModal({ accountId, open, onClose, onCreated }: Props) 
       body: JSON.stringify({
         account_id: accountId,
         content,
-        scheduled_date: scheduledDate,
+        scheduled_date: new Date(scheduledDate).toISOString(),
         source: 'manual',
       }),
     })
