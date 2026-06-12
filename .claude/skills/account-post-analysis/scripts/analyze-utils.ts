@@ -101,6 +101,57 @@ function scorePosts(posts: MetricsPost[]): ScoredPost[] {
   }))
 }
 
+export interface FollowerSnapshot {
+  fetchedAt: string
+  followersCount: number
+}
+
+export interface WeeklyTrendRow {
+  weekLabel: string
+  postsCount: number
+  impressions: number
+  likes: number
+  avgEngagementRate: number
+  followersCount: number | null
+}
+
+export function buildWeeklyTrend(
+  posts: MetricsPost[],
+  followerHistory: FollowerSnapshot[],
+  now: Date
+): WeeklyTrendRow[] {
+  const scored = scorePosts(posts)
+
+  const sortedFollowers = [...followerHistory].sort(
+    (a, b) => new Date(b.fetchedAt).getTime() - new Date(a.fetchedAt).getTime()
+  )
+
+  const rows: WeeklyTrendRow[] = []
+  for (let week = 7; week >= 0; week--) {
+    const weekEnd = new Date(now.getTime() - week * 7 * DAY_MS)
+    const weekStart = new Date(weekEnd.getTime() - 7 * DAY_MS)
+
+    const weekPosts = scored.filter(p => {
+      const t = new Date(p.publishedAt).getTime()
+      return t >= weekStart.getTime() && t < weekEnd.getTime()
+    })
+
+    const followerSnapshot = sortedFollowers.find(
+      f => new Date(f.fetchedAt).getTime() <= weekEnd.getTime()
+    )
+
+    rows.push({
+      weekLabel: `${String(weekEnd.getMonth() + 1).padStart(2, '0')}/${String(weekEnd.getDate()).padStart(2, '0')}`,
+      postsCount: weekPosts.length,
+      impressions: weekPosts.reduce((sum, p) => sum + p.impressions, 0),
+      likes: weekPosts.reduce((sum, p) => sum + p.likes, 0),
+      avgEngagementRate: average(weekPosts.map(p => p.engagementRate)),
+      followersCount: followerSnapshot ? followerSnapshot.followersCount : null,
+    })
+  }
+  return rows
+}
+
 export function aggregate(posts: MetricsPost[], daysRecent: number, now: Date): AnalysisSummary {
   const scored = scorePosts(posts)
 

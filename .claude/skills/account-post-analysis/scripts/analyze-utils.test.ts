@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { slugify, calcEngagementRate, parseArgs, formatReportFilename, aggregate, type MetricsPost } from './analyze-utils'
+import { slugify, calcEngagementRate, parseArgs, formatReportFilename, aggregate, buildWeeklyTrend, type MetricsPost, type FollowerSnapshot } from './analyze-utils'
 
 describe('slugify', () => {
   it('英数字以外をハイフンに変換し、小文字化・前後のハイフンを除去する', () => {
@@ -121,5 +121,76 @@ describe('aggregate', () => {
     expect(summary.latestPostDate).toBe('N/A')
     expect(summary.topByImpressions).toEqual([])
     expect(summary.topByEngagement).toEqual([])
+  })
+})
+
+describe('buildWeeklyTrend', () => {
+  const now = new Date('2026-06-12T00:00:00Z')
+
+  const posts: MetricsPost[] = [
+    {
+      id: 'a',
+      content: 'this week post',
+      scheduledDate: '2026-06-10',
+      publishedAt: '2026-06-10T00:00:00Z',
+      impressions: 1000,
+      likes: 50,
+      replies: 10,
+      reposts: 5,
+    },
+    {
+      id: 'b',
+      content: 'five weeks ago post',
+      scheduledDate: '2026-05-02',
+      publishedAt: '2026-05-02T00:00:00Z',
+      impressions: 400,
+      likes: 40,
+      replies: 0,
+      reposts: 0,
+    },
+  ]
+
+  const followerHistory: FollowerSnapshot[] = [
+    { fetchedAt: '2026-06-11T00:00:00Z', followersCount: 1200 },
+    { fetchedAt: '2026-06-04T00:00:00Z', followersCount: 1100 },
+    { fetchedAt: '2026-04-20T00:00:00Z', followersCount: 900 },
+  ]
+
+  it('直近8週分の行を、過去から現在の順で返す', () => {
+    const rows = buildWeeklyTrend(posts, followerHistory, now)
+
+    expect(rows).toHaveLength(8)
+    // 最後の行が直近の週（週末日 = nowの日付）
+    expect(rows[7].weekLabel).toBe('06/12')
+  })
+
+  it('各週の投稿数・インプレッション・ライク・平均エンゲージメント率を集計する', () => {
+    const rows = buildWeeklyTrend(posts, followerHistory, now)
+
+    // week0 (06/05 ～ 06/12): postA が含まれる
+    const thisWeek = rows[7]
+    expect(thisWeek.postsCount).toBe(1)
+    expect(thisWeek.impressions).toBe(1000)
+    expect(thisWeek.likes).toBe(50)
+    expect(thisWeek.avgEngagementRate).toBe(6.5)
+    expect(thisWeek.followersCount).toBe(1200)
+
+    // week1 (05/29 ～ 06/05): 投稿なし
+    const lastWeek = rows[6]
+    expect(lastWeek.postsCount).toBe(0)
+    expect(lastWeek.followersCount).toBe(1100)
+
+    // week5 (05/01 ～ 05/08): postB が含まれる
+    const fiveWeeksAgo = rows[2]
+    expect(fiveWeeksAgo.postsCount).toBe(1)
+    expect(fiveWeeksAgo.impressions).toBe(400)
+    expect(fiveWeeksAgo.avgEngagementRate).toBe(10)
+    expect(fiveWeeksAgo.followersCount).toBe(900)
+  })
+
+  it('フォロワー数のスナップショットが無い週はnullを返す', () => {
+    const rows = buildWeeklyTrend(posts, [], now)
+
+    expect(rows.every(r => r.followersCount === null)).toBe(true)
   })
 })
