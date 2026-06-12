@@ -152,6 +152,95 @@ export function buildWeeklyTrend(
   return rows
 }
 
+export function generateReport(params: {
+  accountName: string
+  summary: AnalysisSummary
+  weeklyTrend: WeeklyTrendRow[]
+  daysRecent: number
+  metricsFailedCount: number
+  noPlatformIdCount: number
+  generatedAt: Date
+}): string {
+  const { accountName, summary, weeklyTrend, daysRecent, metricsFailedCount, noPlatformIdCount, generatedAt } =
+    params
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const lines: string[] = []
+
+  lines.push(
+    `# ${accountName} 投稿分析レポート (${generatedAt.getUTCFullYear()}年${generatedAt.getUTCMonth() + 1}月${generatedAt.getUTCDate()}日)`
+  )
+  lines.push('')
+
+  lines.push('## 全体サマリー')
+  lines.push('')
+  lines.push('| 指標 | 値 |')
+  lines.push('|------|-----|')
+  lines.push(`| 総投稿数 | ${summary.totalPosts.toLocaleString()}件 |`)
+  lines.push(`| 総インプレッション | ${summary.totalImpressions.toLocaleString()} |`)
+  lines.push(`| 総ライク | ${summary.totalLikes.toLocaleString()} |`)
+  lines.push(`| 総リプライ | ${summary.totalReplies.toLocaleString()} |`)
+  lines.push(`| 総リポスト | ${summary.totalReposts.toLocaleString()} |`)
+  lines.push(`| 平均インプレッション/投稿 | ${summary.avgImpressionsAll.toLocaleString()} |`)
+  lines.push(`| 平均エンゲージメント率 | ${summary.avgEngagementRateAll}% |`)
+  lines.push(`| メトリクス取得失敗 | ${metricsFailedCount}件 |`)
+  lines.push(`| メトリクス対象外（未連携投稿） | ${noPlatformIdCount}件 |`)
+  lines.push(`| データ期間 | ${summary.oldestPostDate} 〜 ${summary.latestPostDate} |`)
+  lines.push('')
+
+  lines.push(`## 直近${daysRecent}日間のパフォーマンス`)
+  lines.push('')
+  lines.push('| 指標 | 値 |')
+  lines.push('|------|-----|')
+  lines.push(`| 投稿数 | ${summary.recentPostsCount}件 |`)
+  lines.push(`| インプレッション合計 | ${summary.recentImpressions.toLocaleString()} |`)
+  lines.push(`| ライク合計 | ${summary.recentLikes.toLocaleString()} |`)
+  lines.push(`| 平均インプレッション/投稿 | ${summary.avgImpressionsRecent.toLocaleString()} |`)
+  lines.push('')
+
+  lines.push('## 週次トレンド（直近8週）')
+  lines.push('')
+  lines.push('| 週末日 | 投稿数 | インプレッション | ライク | 平均エンゲージメント率 | フォロワー数 |')
+  lines.push('|--------|--------|------------------|--------|------------------------|--------------|')
+  for (const w of weeklyTrend) {
+    const followers = w.followersCount === null ? '-' : w.followersCount.toLocaleString()
+    lines.push(
+      `| ${w.weekLabel} | ${w.postsCount} | ${w.impressions.toLocaleString()} | ${w.likes.toLocaleString()} | ${w.avgEngagementRate}% | ${followers} |`
+    )
+  }
+  lines.push('')
+
+  lines.push('## TOP10投稿（インプレッション順・直近30日）')
+  lines.push('')
+  lines.push('| # | 投稿内容（先頭70字） | インプレ | ライク | リプライ | リポスト | エンゲ率 |')
+  lines.push('|---|---------------------|---------|--------|---------|---------|---------|')
+  summary.topByImpressions.forEach((post, i) => {
+    const title = post.content.slice(0, 70).replace(/\|/g, '｜').replace(/\n/g, ' ')
+    lines.push(
+      `| ${i + 1} | ${title} | ${post.impressions.toLocaleString()} | ${post.likes.toLocaleString()} | ${post.replies.toLocaleString()} | ${post.reposts.toLocaleString()} | ${post.engagementRate}% |`
+    )
+  })
+  lines.push('')
+
+  lines.push('## TOP5投稿（エンゲージメント率順・直近30日）')
+  lines.push('')
+  lines.push('| # | 投稿内容（先頭70字） | エンゲ率 | インプレ | ライク |')
+  lines.push('|---|---------------------|---------|---------|--------|')
+  summary.topByEngagement.forEach((post, i) => {
+    const title = post.content.slice(0, 70).replace(/\|/g, '｜').replace(/\n/g, ' ')
+    lines.push(
+      `| ${i + 1} | ${title} | ${post.engagementRate}% | ${post.impressions.toLocaleString()} | ${post.likes.toLocaleString()} |`
+    )
+  })
+  lines.push('')
+
+  lines.push('---')
+  lines.push(
+    `*生成日時: ${generatedAt.getUTCFullYear()}-${pad(generatedAt.getUTCMonth() + 1)}-${pad(generatedAt.getUTCDate())} ${pad(generatedAt.getUTCHours())}:${pad(generatedAt.getUTCMinutes())}*`
+  )
+
+  return lines.join('\n')
+}
+
 export function aggregate(posts: MetricsPost[], daysRecent: number, now: Date): AnalysisSummary {
   const scored = scorePosts(posts)
 
