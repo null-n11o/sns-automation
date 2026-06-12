@@ -1,13 +1,8 @@
+import type { AnalysisSummary, ScoredPost, WeeklyTrendRow } from '../../../../src/types'
+
 export interface ParsedArgs {
   accountQuery: string
   days: number
-}
-
-export function slugify(accountName: string): string {
-  return accountName
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
 }
 
 export function calcEngagementRate(
@@ -44,16 +39,6 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return { accountQuery: positional[0], days }
 }
 
-export function formatReportFilename(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const y = date.getFullYear()
-  const m = pad(date.getMonth() + 1)
-  const d = pad(date.getDate())
-  const hh = pad(date.getHours())
-  const mm = pad(date.getMinutes())
-  return `${y}-${m}-${d}_${hh}${mm}_analysis.md`
-}
-
 export interface MetricsPost {
   id: string
   content: string
@@ -63,28 +48,6 @@ export interface MetricsPost {
   likes: number
   replies: number
   reposts: number
-}
-
-export interface ScoredPost extends MetricsPost {
-  engagementRate: number
-}
-
-export interface AnalysisSummary {
-  totalPosts: number
-  totalImpressions: number
-  totalLikes: number
-  totalReplies: number
-  totalReposts: number
-  avgImpressionsAll: number
-  avgEngagementRateAll: number
-  recentPostsCount: number
-  recentImpressions: number
-  recentLikes: number
-  avgImpressionsRecent: number
-  topByImpressions: ScoredPost[]
-  topByEngagement: ScoredPost[]
-  oldestPostDate: string
-  latestPostDate: string
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -104,15 +67,6 @@ function scorePosts(posts: MetricsPost[]): ScoredPost[] {
 export interface FollowerSnapshot {
   fetchedAt: string
   followersCount: number
-}
-
-export interface WeeklyTrendRow {
-  weekLabel: string
-  postsCount: number
-  impressions: number
-  likes: number
-  avgEngagementRate: number
-  followersCount: number | null
 }
 
 export function buildWeeklyTrend(
@@ -150,95 +104,6 @@ export function buildWeeklyTrend(
     })
   }
   return rows
-}
-
-export function generateReport(params: {
-  accountName: string
-  summary: AnalysisSummary
-  weeklyTrend: WeeklyTrendRow[]
-  daysRecent: number
-  metricsFailedCount: number
-  noPlatformIdCount: number
-  generatedAt: Date
-}): string {
-  const { accountName, summary, weeklyTrend, daysRecent, metricsFailedCount, noPlatformIdCount, generatedAt } =
-    params
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const lines: string[] = []
-
-  lines.push(
-    `# ${accountName} 投稿分析レポート (${generatedAt.getFullYear()}年${generatedAt.getMonth() + 1}月${generatedAt.getDate()}日)`
-  )
-  lines.push('')
-
-  lines.push('## 全体サマリー')
-  lines.push('')
-  lines.push('| 指標 | 値 |')
-  lines.push('|------|-----|')
-  lines.push(`| 総投稿数 | ${summary.totalPosts.toLocaleString()}件 |`)
-  lines.push(`| 総インプレッション | ${summary.totalImpressions.toLocaleString()} |`)
-  lines.push(`| 総ライク | ${summary.totalLikes.toLocaleString()} |`)
-  lines.push(`| 総リプライ | ${summary.totalReplies.toLocaleString()} |`)
-  lines.push(`| 総リポスト | ${summary.totalReposts.toLocaleString()} |`)
-  lines.push(`| 平均インプレッション/投稿 | ${summary.avgImpressionsAll.toLocaleString()} |`)
-  lines.push(`| 平均エンゲージメント率 | ${summary.avgEngagementRateAll}% |`)
-  lines.push(`| メトリクス取得失敗 | ${metricsFailedCount}件 |`)
-  lines.push(`| メトリクス対象外（未連携投稿） | ${noPlatformIdCount}件 |`)
-  lines.push(`| データ期間 | ${summary.oldestPostDate} 〜 ${summary.latestPostDate} |`)
-  lines.push('')
-
-  lines.push(`## 直近${daysRecent}日間のパフォーマンス`)
-  lines.push('')
-  lines.push('| 指標 | 値 |')
-  lines.push('|------|-----|')
-  lines.push(`| 投稿数 | ${summary.recentPostsCount}件 |`)
-  lines.push(`| インプレッション合計 | ${summary.recentImpressions.toLocaleString()} |`)
-  lines.push(`| ライク合計 | ${summary.recentLikes.toLocaleString()} |`)
-  lines.push(`| 平均インプレッション/投稿 | ${summary.avgImpressionsRecent.toLocaleString()} |`)
-  lines.push('')
-
-  lines.push('## 週次トレンド（直近8週）')
-  lines.push('')
-  lines.push('| 週末日 | 投稿数 | インプレッション | ライク | 平均エンゲージメント率 | フォロワー数 |')
-  lines.push('|--------|--------|------------------|--------|------------------------|--------------|')
-  for (const w of weeklyTrend) {
-    const followers = w.followersCount === null ? '-' : w.followersCount.toLocaleString()
-    lines.push(
-      `| ${w.weekLabel} | ${w.postsCount} | ${w.impressions.toLocaleString()} | ${w.likes.toLocaleString()} | ${w.avgEngagementRate}% | ${followers} |`
-    )
-  }
-  lines.push('')
-
-  lines.push('## TOP10投稿（インプレッション順・直近30日）')
-  lines.push('')
-  lines.push('| # | 投稿内容（先頭70字） | インプレ | ライク | リプライ | リポスト | エンゲ率 |')
-  lines.push('|---|---------------------|---------|--------|---------|---------|---------|')
-  summary.topByImpressions.forEach((post, i) => {
-    const title = post.content.slice(0, 70).replace(/\|/g, '｜').replace(/\n/g, ' ')
-    lines.push(
-      `| ${i + 1} | ${title} | ${post.impressions.toLocaleString()} | ${post.likes.toLocaleString()} | ${post.replies.toLocaleString()} | ${post.reposts.toLocaleString()} | ${post.engagementRate}% |`
-    )
-  })
-  lines.push('')
-
-  lines.push('## TOP5投稿（エンゲージメント率順・直近30日）')
-  lines.push('')
-  lines.push('| # | 投稿内容（先頭70字） | エンゲ率 | インプレ | ライク |')
-  lines.push('|---|---------------------|---------|---------|--------|')
-  summary.topByEngagement.forEach((post, i) => {
-    const title = post.content.slice(0, 70).replace(/\|/g, '｜').replace(/\n/g, ' ')
-    lines.push(
-      `| ${i + 1} | ${title} | ${post.engagementRate}% | ${post.impressions.toLocaleString()} | ${post.likes.toLocaleString()} |`
-    )
-  })
-  lines.push('')
-
-  lines.push('---')
-  lines.push(
-    `*生成日時: ${generatedAt.getFullYear()}-${pad(generatedAt.getMonth() + 1)}-${pad(generatedAt.getDate())} ${pad(generatedAt.getHours())}:${pad(generatedAt.getMinutes())}*`
-  )
-
-  return lines.join('\n')
 }
 
 export function aggregate(posts: MetricsPost[], daysRecent: number, now: Date): AnalysisSummary {

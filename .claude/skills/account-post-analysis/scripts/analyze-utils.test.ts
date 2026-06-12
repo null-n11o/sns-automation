@@ -1,12 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { slugify, calcEngagementRate, parseArgs, formatReportFilename, aggregate, buildWeeklyTrend, generateReport, type MetricsPost, type FollowerSnapshot } from './analyze-utils'
-
-describe('slugify', () => {
-  it('英数字以外をハイフンに変換し、小文字化・前後のハイフンを除去する', () => {
-    expect(slugify('Dober/Threads')).toBe('dober-threads')
-    expect(slugify('  Foo_Bar 123 ')).toBe('foo-bar-123')
-  })
-})
+import { calcEngagementRate, parseArgs, aggregate, buildWeeklyTrend, type MetricsPost, type FollowerSnapshot } from './analyze-utils'
 
 describe('calcEngagementRate', () => {
   it('インプレッションに対するライク・リプライ・リポストの割合をパーセントで返す', () => {
@@ -34,12 +27,6 @@ describe('parseArgs', () => {
 
   it('--daysに数値以外を指定するとエラーになる', () => {
     expect(() => parseArgs(['Dober', '--days', 'abc'])).toThrow('--days には数値を指定してください')
-  })
-})
-
-describe('formatReportFilename', () => {
-  it('YYYY-MM-DD_HHMM_analysis.md 形式のファイル名を返す', () => {
-    expect(formatReportFilename(new Date(2026, 5, 12, 9, 5))).toBe('2026-06-12_0905_analysis.md')
   })
 })
 
@@ -192,66 +179,5 @@ describe('buildWeeklyTrend', () => {
     const rows = buildWeeklyTrend(posts, [], now)
 
     expect(rows.every(r => r.followersCount === null)).toBe(true)
-  })
-})
-
-describe('generateReport', () => {
-  const now = new Date('2026-06-12T00:00:00Z')
-
-  it('サマリー・週次トレンド・TOP投稿を含むMarkdownを生成する', () => {
-    const posts: MetricsPost[] = [
-      {
-        id: '1',
-        content: '今週のテスト投稿',
-        scheduledDate: '2026-06-10',
-        publishedAt: '2026-06-10T00:00:00Z',
-        impressions: 1000,
-        likes: 50,
-        replies: 10,
-        reposts: 5,
-      },
-    ]
-    const summary = aggregate(posts, 7, now)
-    const weeklyTrend = buildWeeklyTrend(posts, [], now)
-
-    const report = generateReport({
-      accountName: 'テストアカウント',
-      summary,
-      weeklyTrend,
-      daysRecent: 7,
-      metricsFailedCount: 1,
-      noPlatformIdCount: 2,
-      generatedAt: now,
-    })
-
-    expect(report).toContain('# テストアカウント 投稿分析レポート (2026年6月12日)')
-    expect(report).toContain('## 全体サマリー')
-    expect(report).toContain('| 総投稿数 | 1件 |')
-    expect(report).toContain('| メトリクス取得失敗 | 1件 |')
-    expect(report).toContain('| メトリクス対象外（未連携投稿） | 2件 |')
-    expect(report).toContain('## 直近7日間のパフォーマンス')
-    expect(report).toContain('## 週次トレンド（直近8週）')
-    expect(report).toContain('## TOP10投稿（インプレッション順・直近30日）')
-    expect(report).toContain('## TOP5投稿（エンゲージメント率順・直近30日）')
-    expect(report).toContain('今週のテスト投稿')
-    expect(report).toContain('*生成日時: 2026-06-12 00:00*')
-  })
-
-  it('投稿が0件の場合もエラーにならずレポートを生成する', () => {
-    const summary = aggregate([], 7, now)
-    const weeklyTrend = buildWeeklyTrend([], [], now)
-
-    const report = generateReport({
-      accountName: 'テストアカウント',
-      summary,
-      weeklyTrend,
-      daysRecent: 7,
-      metricsFailedCount: 0,
-      noPlatformIdCount: 0,
-      generatedAt: now,
-    })
-
-    expect(report).toContain('| 総投稿数 | 0件 |')
-    expect(report).toContain('| データ期間 | N/A 〜 N/A |')
   })
 })

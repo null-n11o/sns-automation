@@ -78,3 +78,68 @@ export interface PostMetrics {
   reposts: number
   replies: number
 }
+
+export interface ScoredPost {
+  id: string
+  content: string
+  scheduledDate: string
+  publishedAt: string
+  impressions: number
+  likes: number
+  replies: number
+  reposts: number
+  engagementRate: number
+}
+
+export interface WeeklyTrendRow {
+  weekLabel: string
+  postsCount: number
+  impressions: number
+  likes: number
+  avgEngagementRate: number
+  followersCount: number | null
+}
+
+export interface AnalysisSummary {
+  totalPosts: number
+  totalImpressions: number
+  totalLikes: number
+  totalReplies: number
+  totalReposts: number
+  avgImpressionsAll: number
+  avgEngagementRateAll: number
+  recentPostsCount: number
+  recentImpressions: number
+  recentLikes: number
+  avgImpressionsRecent: number
+  topByImpressions: ScoredPost[]
+  topByEngagement: ScoredPost[]
+  oldestPostDate: string
+  latestPostDate: string
+}
+
+export interface AnalysisReportData {
+  summary: AnalysisSummary
+  weeklyTrend: WeeklyTrendRow[]
+  daysRecent: number
+  metricsFailedCount: number
+  noPlatformIdCount: number
+}
+
+export interface AnalysisInsights {
+  notable_posts: string
+  engagement_review: string
+  next_actions: string
+}
+
+export interface AccountAnalysisReport {
+  id: string
+  account_id: string
+  period_start: string
+  period_end: string
+  days_recent: number
+  report_data: AnalysisReportData
+  insights: AnalysisInsights | null
+  generated_at: string
+  insights_generated_at: string | null
+}
