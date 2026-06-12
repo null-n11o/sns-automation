@@ -31,7 +31,7 @@ export function ReportsList({ accounts, initialReports }: Props) {
   const selectAccount = async (accountId: string) => {
     setSelectedAccountId(accountId)
     const res = await fetch(`/api/analytics/reports?account_id=${accountId}`)
-    setReports(await res.json())
+    setReports(res.ok ? await res.json() : [])
   }
 
   return (
