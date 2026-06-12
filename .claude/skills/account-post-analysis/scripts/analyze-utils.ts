@@ -167,7 +167,7 @@ export function generateReport(params: {
   const lines: string[] = []
 
   lines.push(
-    `# ${accountName} 投稿分析レポート (${generatedAt.getUTCFullYear()}年${generatedAt.getUTCMonth() + 1}月${generatedAt.getUTCDate()}日)`
+    `# ${accountName} 投稿分析レポート (${generatedAt.getFullYear()}年${generatedAt.getMonth() + 1}月${generatedAt.getDate()}日)`
   )
   lines.push('')
 
@@ -235,7 +235,7 @@ export function generateReport(params: {
 
   lines.push('---')
   lines.push(
-    `*生成日時: ${generatedAt.getUTCFullYear()}-${pad(generatedAt.getUTCMonth() + 1)}-${pad(generatedAt.getUTCDate())} ${pad(generatedAt.getUTCHours())}:${pad(generatedAt.getUTCMinutes())}*`
+    `*生成日時: ${generatedAt.getFullYear()}-${pad(generatedAt.getMonth() + 1)}-${pad(generatedAt.getDate())} ${pad(generatedAt.getHours())}:${pad(generatedAt.getMinutes())}*`
   )
 
   return lines.join('\n')

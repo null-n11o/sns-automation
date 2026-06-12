@@ -23,6 +23,9 @@ export default defineConfig({
           name: 'skills',
           environment: 'node',
           include: ['.claude/**/*.test.ts'],
+          env: {
+            TZ: 'UTC',
+          },
         },
       },
     ],
