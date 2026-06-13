@@ -33,13 +33,18 @@ export default async function AnalyticsPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-xl font-semibold">分析</h1>
-        <a
-          href="/analytics/report"
-          target="_blank"
-          className="text-sm text-blue-600 hover:underline"
-        >
-          レポートを印刷
-        </a>
+        <div className="flex gap-4">
+          <a href="/analytics/reports" className="text-sm text-blue-600 hover:underline">
+            分析レポート
+          </a>
+          <a
+            href="/analytics/report"
+            target="_blank"
+            className="text-sm text-blue-600 hover:underline"
+          >
+            レポートを印刷
+          </a>
+        </div>
       </div>
 
       {!accounts?.length ? (

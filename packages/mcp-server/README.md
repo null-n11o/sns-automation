@@ -38,3 +38,4 @@ Claude Code または Claude Desktop からSNS投稿を操作するMCPサーバ�
 | `create_post` | 下書き投稿を作成 |
 | `list_posts` | 投稿一覧を取得（statusフィルタ可） |
 | `update_post` | 投稿を更新 |
+| `list_analysis_reports` | アカウントの分析レポート一覧を取得（期間指定可） |

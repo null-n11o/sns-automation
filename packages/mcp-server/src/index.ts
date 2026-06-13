@@ -78,6 +78,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         required: ['id'],
       },
     },
+    {
+      name: 'list_analysis_reports',
+      description: 'アカウントの分析レポート一覧を返す（期間指定可）',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          account_id: { type: 'string', description: 'アカウントID' },
+          since: { type: 'string', description: '取得開始日時 ISO8601（省略可、generated_atでフィルタ）' },
+          until: { type: 'string', description: '取得終了日時 ISO8601（省略可）' },
+          limit: { type: 'number', description: '取得件数上限（デフォルト10）' },
+        },
+        required: ['account_id'],
+      },
+    },
   ],
 }))
 
@@ -136,6 +150,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       .select()
       .single()
 
+    if (error) throw new Error(error.message)
+    return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] }
+  }
+
+  if (name === 'list_analysis_reports') {
+    const { account_id, since, until, limit = 10 } = args as {
+      account_id: string; since?: string; until?: string; limit?: number
+    }
+
+    let query = supabase
+      .from('account_analysis_reports')
+      .select('id, period_start, period_end, days_recent, report_data, insights, generated_at, insights_generated_at')
+      .eq('account_id', account_id)
+      .order('generated_at', { ascending: false })
+      .limit(limit)
+
+    if (since) query = query.gte('generated_at', since)
+    if (until) query = query.lte('generated_at', until)
+
+    const { data, error } = await query
     if (error) throw new Error(error.message)
     return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] }
   }

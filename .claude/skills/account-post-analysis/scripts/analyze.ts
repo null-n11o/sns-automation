@@ -7,14 +7,12 @@ import { fetchThreadsPostMetrics } from '../../../../src/lib/threads-metrics'
 import { fetchXPostMetrics } from '../../../../src/lib/x-metrics'
 import {
   parseArgs,
-  slugify,
   aggregate,
   buildWeeklyTrend,
-  generateReport,
-  formatReportFilename,
   type MetricsPost,
   type FollowerSnapshot,
 } from './analyze-utils'
+import type { AnalysisReportData } from '../../../../src/types'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -131,23 +129,32 @@ async function main() {
   const summary = aggregate(metricsPosts, days, now)
   const weeklyTrend = buildWeeklyTrend(metricsPosts, followerHistory, now)
 
-  // 6. レポート生成・保存
-  const report = generateReport({
-    accountName: account.account_name,
+  // 6. レポートデータの構築・DB保存
+  const reportData: AnalysisReportData = {
     summary,
     weeklyTrend,
     daysRecent: days,
     metricsFailedCount,
     noPlatformIdCount,
-    generatedAt: now,
-  })
+  }
 
-  const reportsDir = path.join(__dirname, '..', 'reports', slugify(account.account_name))
-  fs.mkdirSync(reportsDir, { recursive: true })
-  const filePath = path.join(reportsDir, formatReportFilename(now))
-  fs.writeFileSync(filePath, report, 'utf-8')
+  const { data: report, error: reportError } = await supabase
+    .from('account_analysis_reports')
+    .insert({
+      account_id: account.id,
+      period_start: since,
+      period_end: now.toISOString(),
+      days_recent: days,
+      report_data: reportData,
+      generated_at: now.toISOString(),
+    })
+    .select('id')
+    .single()
 
-  console.log(`✅ レポートを保存しました: ${filePath}`)
+  if (reportError) throw new Error(`レポート保存エラー: ${reportError.message}`)
+
+  console.log(`✅ レポートをDBに保存しました (id: ${report.id})`)
+  console.log(JSON.stringify(reportData, null, 2))
 }
 
 main().catch(err => {
