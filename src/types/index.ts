@@ -143,3 +143,31 @@ export interface AccountAnalysisReport {
   generated_at: string
   insights_generated_at: string | null
 }
+
+export interface StrategyExampleMetrics {
+  impressions: number
+  likes: number
+  follows?: number
+  replies?: number
+  reposts?: number
+}
+
+export interface StrategyExample {
+  format: string // A〜G
+  title: string
+  content: string
+  metrics: StrategyExampleMetrics
+  score: number
+  rationale: string
+}
+
+export interface AccountContentStrategy {
+  id: string
+  account_id: string
+  version: number
+  examples: StrategyExample[]
+  source_report_id: string | null
+  is_active: boolean
+  created_at: string
+  activated_at: string | null
+}
