@@ -128,8 +128,8 @@ export function aggregate(posts: MetricsPost[], daysRecent: number, now: Date): 
     recentImpressions: recentPosts.reduce((sum, p) => sum + p.impressions, 0),
     recentLikes: recentPosts.reduce((sum, p) => sum + p.likes, 0),
     avgImpressionsRecent: average(recentPosts.map(p => p.impressions)),
-    topByImpressions: [...scored].sort((a, b) => b.impressions - a.impressions).slice(0, 10),
-    topByEngagement: [...scored].sort((a, b) => b.engagementRate - a.engagementRate).slice(0, 5),
+    topByImpressions: [...recentPosts].sort((a, b) => b.impressions - a.impressions).slice(0, 10),
+    topByEngagement: [...recentPosts].sort((a, b) => b.engagementRate - a.engagementRate).slice(0, 5),
     oldestPostDate:
       sortedByDate.length > 0 ? sortedByDate[sortedByDate.length - 1].publishedAt.slice(0, 10) : 'N/A',
     latestPostDate: sortedByDate.length > 0 ? sortedByDate[0].publishedAt.slice(0, 10) : 'N/A',

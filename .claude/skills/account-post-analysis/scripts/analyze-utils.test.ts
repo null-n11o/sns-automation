@@ -90,8 +90,17 @@ describe('aggregate', () => {
     expect(summary.avgImpressionsRecent).toBe(1500)
   })
 
-  it('TOP10をインプレッション順、TOP5をエンゲージメント率順で返す', () => {
+  it('TOPは直近N日内の投稿のみを対象に、インプレッション順・エンゲージメント率順で返す', () => {
     const summary = aggregate(posts, 7, now)
+
+    // id '3'(2026-05-01) は now(06-12) から7日より前なのでTOPに含めない
+    expect(summary.topByImpressions.map(p => p.id)).toEqual(['2', '1'])
+    expect(summary.topByEngagement.map(p => p.id)).toEqual(['1', '2'])
+    expect(summary.topByEngagement[0].engagementRate).toBe(6.5)
+  })
+
+  it('期間を広げるとTOPに古い投稿も含まれる', () => {
+    const summary = aggregate(posts, 60, now)
 
     expect(summary.topByImpressions.map(p => p.id)).toEqual(['2', '1', '3'])
     expect(summary.topByEngagement.map(p => p.id)).toEqual(['3', '1', '2'])
