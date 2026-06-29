@@ -30,10 +30,57 @@ export function PostsTable({ initialPosts, accounts }: Props) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [publishingId, setPublishingId] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const filteredPosts = posts
     .filter(p => p.account_id === selectedAccountId)
     .sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime())
+
+  const itemsPerPage = 50
+  const totalItems = filteredPosts.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
+  const activePage = currentPage > totalPages ? totalPages : currentPage
+
+  const startIndex = (activePage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedPosts = filteredPosts.slice(startIndex, endIndex)
+
+  const getPageNumbers = () => {
+    const pageNumbers = []
+    const maxButtons = 5
+    
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i)
+      }
+    } else {
+      pageNumbers.push(1)
+      
+      let start = Math.max(2, activePage - 1)
+      let end = Math.min(totalPages - 1, activePage + 1)
+      
+      if (activePage <= 2) {
+        end = 4
+      } else if (activePage >= totalPages - 1) {
+        start = totalPages - 3
+      }
+      
+      if (start > 2) {
+        pageNumbers.push('ellipsis-start')
+      }
+      
+      for (let i = start; i <= end; i++) {
+        pageNumbers.push(i)
+      }
+      
+      if (end < totalPages - 1) {
+        pageNumbers.push('ellipsis-end')
+      }
+      
+      pageNumbers.push(totalPages)
+    }
+    return pageNumbers
+  }
 
   async function refreshPosts() {
     const res = await fetch(`/api/posts?account_id=${selectedAccountId}`)
@@ -102,7 +149,10 @@ export function PostsTable({ initialPosts, accounts }: Props) {
         {accounts.map(a => (
           <button
             key={a.id}
-            onClick={() => setSelectedAccountId(a.id)}
+            onClick={() => {
+              setSelectedAccountId(a.id)
+              setCurrentPage(1)
+            }}
             className={`px-4 py-2 rounded text-sm font-medium ${
               selectedAccountId === a.id
                 ? 'bg-gray-900 text-white'
@@ -142,7 +192,7 @@ export function PostsTable({ initialPosts, accounts }: Props) {
             </tr>
           </thead>
           <tbody>
-            {filteredPosts.map(post => (
+            {paginatedPosts.map(post => (
               <tr key={post.id} className="border-t hover:bg-gray-50">
                 <td className="p-4 max-w-xs">
                   {editingId === post.id ? (
@@ -232,6 +282,80 @@ export function PostsTable({ initialPosts, accounts }: Props) {
             )}
           </tbody>
         </table>
+
+        {/* ページネーションコントロール */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50 text-gray-700 text-sm">
+            <div>
+              <p className="text-sm text-gray-500">
+                全 <span className="font-medium text-gray-900">{totalItems}</span> 件中{' '}
+                <span className="font-medium text-gray-900">{startIndex + 1}</span> 〜{' '}
+                <span className="font-medium text-gray-900">{Math.min(endIndex, totalItems)}</span> 件を表示
+              </p>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(1)}
+                disabled={activePage === 1}
+                className="h-8 px-2 text-xs"
+              >
+                最初
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={activePage === 1}
+                className="h-8 px-2 text-xs"
+              >
+                前へ
+              </Button>
+              
+              {getPageNumbers().map((page, index) => {
+                if (page === 'ellipsis-start' || page === 'ellipsis-end') {
+                  return (
+                    <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
+                      ...
+                    </span>
+                  )
+                }
+                
+                return (
+                  <Button
+                    key={`page-${page}`}
+                    variant={activePage === page ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCurrentPage(page as number)}
+                    className="h-8 w-8 p-0 text-xs"
+                  >
+                    {page}
+                  </Button>
+                )
+              })}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={activePage === totalPages}
+                className="h-8 px-2 text-xs"
+              >
+                次へ
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={activePage === totalPages}
+                className="h-8 px-2 text-xs"
+              >
+                最後
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <CreatePostModal
