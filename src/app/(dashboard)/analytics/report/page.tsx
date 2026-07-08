@@ -1,26 +1,48 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import type { PostMetrics } from '@/types'
+import type { Post, PostMetrics } from '@/types'
+import { withLatestMetrics } from '@/lib/analytics/latest-metrics'
 import { PrintButton } from './PrintButton'
 
-export default async function ReportPage() {
+export default async function ReportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ account_id?: string }>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { account_id } = await searchParams
+
+  const { data: accounts } = await supabase
+    .from('accounts')
+    .select('id, account_name, platform')
+    .order('created_at')
+
+  const accountId = account_id ?? accounts?.[0]?.id
+
+  if (!accountId) {
+    return (
+      <div className="max-w-4xl mx-auto p-8">
+        <p className="text-sm text-gray-500">アカウントがありません。</p>
+      </div>
+    )
+  }
+
+  const accountName = accounts?.find(a => a.id === accountId)?.account_name ?? ''
+
   const { data: posts } = await supabase
     .from('posts')
-    .select('*, post_metrics(impressions, likes, reposts, replies, fetched_at), accounts(account_name, platform)')
+    .select('*, post_metrics(impressions, likes, reposts, replies, fetched_at)')
     .eq('status', 'published')
+    .eq('account_id', accountId)
     .order('published_at', { ascending: false })
     .limit(100)
 
-  const postsWithLatestMetrics = (posts ?? []).map(post => {
-    const metrics = (post.post_metrics as PostMetrics[]).sort(
-      (a, b) => new Date(b.fetched_at).getTime() - new Date(a.fetched_at).getTime()
-    )
-    return { ...post, latest_metrics: metrics[0] ?? null }
-  })
+  const postsWithLatestMetrics = withLatestMetrics(
+    (posts ?? []) as (Post & { post_metrics: PostMetrics[] })[]
+  )
 
   const totalImpressions = postsWithLatestMetrics.reduce(
     (sum, p) => sum + (p.latest_metrics?.impressions ?? 0), 0
@@ -46,7 +68,9 @@ export default async function ReportPage() {
         {/* ヘッダー */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-2xl font-bold">SNS パフォーマンスレポート</h1>
+            <h1 className="text-2xl font-bold">
+              SNS パフォーマンスレポート{accountName ? ` — ${accountName}` : ''}
+            </h1>
             <p className="text-sm text-gray-500 mt-1">生成日: {generatedAt}</p>
           </div>
           <PrintButton />
