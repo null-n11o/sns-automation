@@ -24,6 +24,16 @@ codex mcp add sns-automation -- node /Users/nakanokentaro/02_dev/sns-automation/
 
 The MCP launcher reads `.env.local` and maps `NEXT_PUBLIC_SUPABASE_URL` to `SUPABASE_URL` when needed. Do not commit secrets from `.env.local` or `.mcp.json`.
 
+Codex app-server is enabled through the standalone Codex install and a persistent local daemon:
+
+```bash
+codex app-server daemon bootstrap --remote-control
+codex app-server daemon version
+codex doctor
+```
+
+The daemon uses the local control socket at `~/.codex/app-server-control/app-server-control.sock`. Use `codex app-server daemon stop` to stop it and `codex remote-control start --json` to start it again with remote control enabled.
+
 Superpowers design and planning artifacts live in `docs/superpowers/`; active SDD task notes live in `.superpowers/sdd/`.
 
 ## Getting Started
