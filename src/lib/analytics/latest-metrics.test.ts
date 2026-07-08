@@ -7,9 +7,9 @@ describe('withLatestMetrics', () => {
       {
         id: 'p1',
         post_metrics: [
-          { fetched_at: '2026-06-01T00:00:00Z', impressions: 100, likes: 1, reposts: 0, replies: 0 },
-          { fetched_at: '2026-06-05T00:00:00Z', impressions: 500, likes: 9, reposts: 2, replies: 1 },
-          { fetched_at: '2026-06-03T00:00:00Z', impressions: 300, likes: 4, reposts: 1, replies: 0 },
+          { id: 'm1', post_id: 'p1', fetched_at: '2026-06-01T00:00:00Z', impressions: 100, likes: 1, reposts: 0, replies: 0 },
+          { id: 'm2', post_id: 'p1', fetched_at: '2026-06-05T00:00:00Z', impressions: 500, likes: 9, reposts: 2, replies: 1 },
+          { id: 'm3', post_id: 'p1', fetched_at: '2026-06-03T00:00:00Z', impressions: 300, likes: 4, reposts: 1, replies: 0 },
         ],
       },
     ]
@@ -24,8 +24,8 @@ describe('withLatestMetrics', () => {
 
   it('元の post_metrics 配列を破壊的に並べ替えない', () => {
     const metrics = [
-      { fetched_at: '2026-06-01T00:00:00Z', impressions: 100, likes: 1, reposts: 0, replies: 0 },
-      { fetched_at: '2026-06-05T00:00:00Z', impressions: 500, likes: 9, reposts: 2, replies: 1 },
+      { id: 'm1', post_id: 'p1', fetched_at: '2026-06-01T00:00:00Z', impressions: 100, likes: 1, reposts: 0, replies: 0 },
+      { id: 'm2', post_id: 'p1', fetched_at: '2026-06-05T00:00:00Z', impressions: 500, likes: 9, reposts: 2, replies: 1 },
     ]
     const posts = [{ id: 'p1', post_metrics: metrics }]
     withLatestMetrics(posts)
