@@ -1,5 +1,31 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Codex Development
+
+This repository is configured for Codex development through `AGENTS.md`.
+
+Before editing Next.js code, read the relevant guide under `node_modules/next/dist/docs/`; this project uses Next.js 16 and may differ from older Next.js conventions.
+
+Common commands:
+
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run test:run
+npm run test:e2e
+```
+
+To enable the local SNS Automation MCP server in Codex:
+
+```bash
+codex mcp add sns-automation -- node /Users/nakanokentaro/02_dev/sns-automation/scripts/codex-mcp-sns-automation.mjs
+```
+
+The MCP launcher reads `.env.local` and maps `NEXT_PUBLIC_SUPABASE_URL` to `SUPABASE_URL` when needed. Do not commit secrets from `.env.local` or `.mcp.json`.
+
+Superpowers design and planning artifacts live in `docs/superpowers/`; active SDD task notes live in `.superpowers/sdd/`.
+
 ## Getting Started
 
 First, run the development server:
