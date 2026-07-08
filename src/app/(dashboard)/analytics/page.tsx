@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { MetricsTable } from '@/components/analytics/MetricsTable'
 import type { PostMetrics } from '@/types'
 
@@ -34,9 +35,9 @@ export default async function AnalyticsPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-xl font-semibold">分析</h1>
         <div className="flex gap-4">
-          <a href="/analytics/reports" className="text-sm text-blue-600 hover:underline">
+          <Link href="/analytics/reports" className="text-sm text-blue-600 hover:underline">
             分析レポート
-          </a>
+          </Link>
           <a
             href="/analytics/report"
             target="_blank"

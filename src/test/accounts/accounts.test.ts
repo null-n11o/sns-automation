@@ -2,12 +2,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // ---- Supabase mock setup ----
-const mockInsert = vi.fn()
-const mockDelete = vi.fn()
-const mockSelect = vi.fn()
-const mockEq = vi.fn()
-const mockSingle = vi.fn()
-
 // Chain builder: supports .select().eq().single() and .from().insert() / .from().delete().eq()
 function makeQueryBuilder(finalResult: unknown) {
   const chain = {
@@ -129,6 +123,7 @@ describe('account actions', () => {
       const fd = new FormData()
       fd.set('platform', 'threads')
       fd.set('account_name', 'ThreadsAccount')
+      fd.set('platform_user_id', 'threads-user-id')
       // no API credentials
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({ data: { user: { id: 'u1' } } })
