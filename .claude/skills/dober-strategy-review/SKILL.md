@@ -5,7 +5,7 @@ description: Threadsアカウント「Dober」(@dober_fullstack)の週次パフ�
 
 # dober-strategy-review
 
-Dober (account_id: `df3bd84a-b782-4c68-bbee-7697e95decaa`) の最新分析レポートを元に、投稿生成が参照する「実例セット」を進化させる。直近で伸びた投稿を高パフォーマンス実例としてA〜Gフォーマットに分類し、現行セットとの差分をユーザーに提示し、承認後に新バージョンとしてDBへ適用する。
+Dober (account_id: `df3bd84a-b782-4c68-bbee-7697e95decaa`) の最新分析レポートと過去CSVの5000imp超実績を元に、投稿生成が参照する「実例セット」を進化させる。直近で伸びた投稿を高パフォーマンス実例としてA〜Gフォーマットに分類し、現行セットとの差分をユーザーに提示し、承認後に新バージョンとしてDBへ適用する。
 
 フォーマット定義（A〜G）は `../dober-content-strategy/references/formats.md` を参照する。
 
@@ -25,10 +25,16 @@ LIMIT 1;
 
 - レポートが存在しない、または `generated_at` が7日より古い場合は、`account-post-analysis` スキルを実行して最新レポートを生成するようユーザーに促す（「最新レポートが無い/古いので先に分析しますか？」）。
 - 取得した `report_data.summary.topByImpressions` / `topByEngagement` が高パフォーマンス投稿の候補。`insights.next_actions` は補足の方向性として読む。
+- 直近レポートだけでなく、過去CSVの5000imp超で確認済みの強い型（危機・負債型、基本基準型、社会が思う/本当の価値対比型、人工刺激/やめる・やる型、退屈な規律型、階層分類型、恋愛・女性視点型）を優先する。
 
 ### Step 2: 高パフォーマンス投稿をA〜Gに分類する
 
-`../dober-content-strategy/references/formats.md` のA〜G定義に従い、Step 1で得たTOP投稿（重複除外）を各フォーマットに分類し、採用理由(rationale)を付ける。フォーマットが偏らないよう、できるだけ複数区分から選定する（目安: 計15〜20件）。
+`../dober-content-strategy/references/formats.md` のA〜G定義に従い、Step 1で得たTOP投稿（重複除外）を各フォーマットに分類し、採用理由(rationale)を付ける。現行定義ではA〜Eを厚めにし、F/Gを補助的に選定する（目安: 計15〜20件）。
+
+通常ローテーションから外すもの:
+- アルファ/シグマ型。5000imp超データ内の出現が少なく、直近でも伸びが弱い。
+- 「お金の使い方」単体の訓話。採用するなら「社会が思う成功/本当の成功」「金で買える/買えない」「仕組み/自由」の構造に変換する。
+- 有名人逸話単体。採用するなら「退屈な規律」「毎朝の反復」など現行A〜Gに接続する。
 
 各実例は以下の `StrategyExample` 形式にする:
 
