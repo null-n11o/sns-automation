@@ -23,11 +23,12 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const { account_id, content, scheduled_date, source = 'manual' } = body
+  const { account_id, content, scheduled_date, source = 'manual', image_url } = body
 
   const { data, error } = await supabase.from('posts').insert({
     account_id,
     content,
+    image_url: normalizeImageUrl(image_url),
     scheduled_date,
     source,
     status: 'draft',
@@ -35,4 +36,10 @@ export async function POST(request: Request) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json(data, { status: 201 })
+}
+
+function normalizeImageUrl(value: unknown) {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
 }

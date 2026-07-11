@@ -25,6 +25,7 @@ describe('publishPost', () => {
     await publishPost({
       platform: 'threads',
       content: 'Hello world',
+      image_url: 'https://example.com/image.jpg',
       access_token: encryptedToken,
       platform_user_id: 'user-123',
     })
@@ -33,6 +34,7 @@ describe('publishPost', () => {
       accessToken: 'real-access-token',
       userId: 'user-123',
       content: 'Hello world',
+      imageUrl: 'https://example.com/image.jpg',
     })
   })
 
@@ -55,5 +57,17 @@ describe('publishPost', () => {
       accessTokenSecret: 'tokenSecret',
       content: 'Hello X',
     })
+  })
+
+  it('rejects image URLs for X posts', async () => {
+    await expect(publishPost({
+      platform: 'x',
+      content: 'Hello X',
+      image_url: 'https://example.com/image.jpg',
+      api_key: encrypt('key'),
+      api_secret: encrypt('secret'),
+      access_token: encrypt('token'),
+      access_token_secret: encrypt('tokenSecret'),
+    })).rejects.toThrow('Image posting is currently supported only for Threads')
   })
 })

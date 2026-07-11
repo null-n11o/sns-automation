@@ -19,6 +19,7 @@ function post(id: string, impressions: number, likes: number): PostWithLatestMet
     error_message: null,
     published_at: '2026-06-01T00:00:00Z',
     platform_post_id: null,
+    image_url: null,
     created_at: '2026-06-01T00:00:00Z',
     latest_metrics: {
       id: `m-${id}`,

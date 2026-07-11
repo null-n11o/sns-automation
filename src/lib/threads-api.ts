@@ -4,13 +4,15 @@ interface ThreadsPostOptions {
   accessToken: string
   userId: string
   content: string
+  imageUrl?: string | null
 }
 
-export async function postToThreads({ accessToken, userId, content }: ThreadsPostOptions): Promise<string> {
+export async function postToThreads({ accessToken, userId, content, imageUrl }: ThreadsPostOptions): Promise<string> {
   // Step 1: Create media container
   const createUrl = new URL(`${THREADS_API_BASE}/${userId}/threads`)
-  createUrl.searchParams.set('media_type', 'TEXT')
+  createUrl.searchParams.set('media_type', imageUrl ? 'IMAGE' : 'TEXT')
   createUrl.searchParams.set('text', content)
+  if (imageUrl) createUrl.searchParams.set('image_url', imageUrl)
   createUrl.searchParams.set('access_token', accessToken)
 
   const createRes = await fetch(createUrl.toString(), { method: 'POST' })

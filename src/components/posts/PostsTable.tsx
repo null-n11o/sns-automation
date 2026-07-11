@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { PostStatusBadge } from './PostStatusBadge'
 import { CreatePostModal } from './CreatePostModal'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { Post, PostStatus } from '@/types'
@@ -26,6 +27,7 @@ export function PostsTable({ initialPosts, accounts }: Props) {
   const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id ?? '')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
+  const [editImageUrl, setEditImageUrl] = useState('')
   const [editScheduledDate, setEditScheduledDate] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [publishingId, setPublishingId] = useState<string | null>(null)
@@ -105,10 +107,10 @@ export function PostsTable({ initialPosts, accounts }: Props) {
     await fetch(`/api/posts/${postId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: editContent, scheduled_date: utcScheduledDate }),
+      body: JSON.stringify({ content: editContent, image_url: editImageUrl, scheduled_date: utcScheduledDate }),
     })
     setPosts(prev => prev.map(p =>
-      p.id === postId ? { ...p, content: editContent, scheduled_date: utcScheduledDate } : p
+      p.id === postId ? { ...p, content: editContent, image_url: editImageUrl.trim() || null, scheduled_date: utcScheduledDate } : p
     ))
     setEditingId(null)
   }
@@ -203,7 +205,14 @@ export function PostsTable({ initialPosts, accounts }: Props) {
                         rows={3}
                         className="text-sm"
                       />
-                      <input
+                      <Input
+                        type="url"
+                        value={editImageUrl}
+                        onChange={e => setEditImageUrl(e.target.value)}
+                        placeholder="画像URL"
+                        className="text-sm"
+                      />
+                      <Input
                         type="datetime-local"
                         value={editScheduledDate}
                         onChange={e => setEditScheduledDate(e.target.value)}
@@ -215,7 +224,19 @@ export function PostsTable({ initialPosts, accounts }: Props) {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm line-clamp-2">{post.content}</p>
+                    <div className="space-y-2">
+                      <p className="text-sm line-clamp-2">{post.content}</p>
+                      {post.image_url && (
+                        <div className="flex items-center gap-2">
+                          <div
+                            aria-label="添付画像"
+                            className="h-10 w-10 rounded border bg-cover bg-center"
+                            style={{ backgroundImage: `url(${post.image_url})` }}
+                          />
+                          <span className="text-xs text-gray-500">画像あり</span>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </td>
                 <td className="p-4 text-sm text-gray-600 whitespace-nowrap">
@@ -252,6 +273,7 @@ export function PostsTable({ initialPosts, accounts }: Props) {
                         onClick={() => {
                           setEditingId(post.id)
                           setEditContent(post.content)
+                          setEditImageUrl(post.image_url ?? '')
                           const d = new Date(post.scheduled_date)
                           const pad = (n: number) => String(n).padStart(2, '0')
                           setEditScheduledDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`)

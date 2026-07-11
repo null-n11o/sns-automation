@@ -44,6 +44,7 @@ export interface Post {
   id: string
   account_id: string
   content: string
+  image_url: string | null
   scheduled_date: string
   status: PostStatus
   source: PostSource

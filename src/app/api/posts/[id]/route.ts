@@ -12,11 +12,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   if (body.status !== undefined) updates.status = body.status
   if (body.content !== undefined) updates.content = body.content
+  if (body.image_url !== undefined) updates.image_url = normalizeImageUrl(body.image_url)
   if (body.scheduled_date !== undefined) updates.scheduled_date = body.scheduled_date
 
   const { error } = await supabase.from('posts').update(updates).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json({ ok: true })
+}
+
+function normalizeImageUrl(value: unknown) {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
