@@ -29,6 +29,7 @@ export async function GET(request: Request) {
         const platformPostId = await publishPost({
           platform: account.platform as Platform,
           content: post.content,
+          image_url: post.image_url,
           access_token: account.access_token,
           access_token_secret: account.access_token_secret,
           api_key: account.api_key,

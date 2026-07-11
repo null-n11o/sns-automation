@@ -39,6 +39,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           account_id: { type: 'string', description: 'アカウントID' },
           content: { type: 'string', description: '投稿本文' },
+          image_url: { type: 'string', description: '画像URL（省略可、Threads画像投稿用）' },
           scheduled_date: { type: 'string', description: '投稿予定日 (YYYY-MM-DD)' },
         },
         required: ['account_id', 'content', 'scheduled_date'],
@@ -68,6 +69,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           id: { type: 'string', description: '投稿ID' },
           content: { type: 'string', description: '新しい本文（省略可）' },
+          image_url: { type: 'string', description: '新しい画像URL（空文字で削除、省略可）' },
           scheduled_date: { type: 'string', description: '新しい投稿予定日 YYYY-MM-DD（省略可）' },
           status: {
             type: 'string',
@@ -109,13 +111,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   if (name === 'create_post') {
-    const { account_id, content, scheduled_date } = args as {
-      account_id: string; content: string; scheduled_date: string
+    const { account_id, content, image_url, scheduled_date } = args as {
+      account_id: string; content: string; image_url?: string; scheduled_date: string
     }
 
     const { data, error } = await supabase
       .from('posts')
-      .insert({ account_id, content, scheduled_date, status: 'draft', source: 'ai' })
+      .insert({ account_id, content, image_url: normalizeImageUrl(image_url), scheduled_date, status: 'draft', source: 'ai' })
       .select()
       .single()
 
@@ -127,7 +129,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { account_id, status } = args as { account_id: string; status?: string }
     let query = supabase
       .from('posts')
-      .select('id, content, scheduled_date, status, source, created_at')
+      .select('id, content, image_url, scheduled_date, status, source, created_at')
       .eq('account_id', account_id)
       .order('scheduled_date')
 
@@ -140,8 +142,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === 'update_post') {
     const { id, ...updates } = args as {
-      id: string; content?: string; scheduled_date?: string; status?: string
+      id: string; content?: string; image_url?: string; scheduled_date?: string; status?: string
     }
+    if (updates.image_url !== undefined) updates.image_url = normalizeImageUrl(updates.image_url) as string
 
     const { data, error } = await supabase
       .from('posts')
@@ -179,3 +182,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 const transport = new StdioServerTransport()
 await server.connect(transport)
+
+function normalizeImageUrl(value: unknown) {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}

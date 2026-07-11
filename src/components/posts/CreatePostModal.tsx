@@ -16,6 +16,7 @@ interface Props {
 
 export function CreatePostModal({ accountId, open, onClose, onCreated }: Props) {
   const [content, setContent] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -31,6 +32,7 @@ export function CreatePostModal({ accountId, open, onClose, onCreated }: Props) 
       body: JSON.stringify({
         account_id: accountId,
         content,
+        image_url: imageUrl,
         scheduled_date: new Date(scheduledDate).toISOString(),
         source: 'manual',
       }),
@@ -41,6 +43,7 @@ export function CreatePostModal({ accountId, open, onClose, onCreated }: Props) 
       setError(data.error ?? '投稿の作成に失敗しました')
     } else {
       setContent('')
+      setImageUrl('')
       setScheduledDate('')
       onCreated()
       onClose()
@@ -65,6 +68,22 @@ export function CreatePostModal({ accountId, open, onClose, onCreated }: Props) 
               placeholder="投稿内容を入力..."
             />
             <p className="text-xs text-gray-500 mt-1">{content.length} 文字</p>
+          </div>
+          <div>
+            <Label>画像URL</Label>
+            <Input
+              type="url"
+              value={imageUrl}
+              onChange={e => setImageUrl(e.target.value)}
+              placeholder="https://example.com/image.jpg"
+            />
+            {imageUrl && (
+              <div
+                aria-label="添付画像プレビュー"
+                className="mt-2 h-24 w-24 rounded border bg-cover bg-center"
+                style={{ backgroundImage: `url(${imageUrl})` }}
+              />
+            )}
           </div>
           <div>
             <Label>予約日時</Label>

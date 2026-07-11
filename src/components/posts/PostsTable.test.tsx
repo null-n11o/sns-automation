@@ -19,6 +19,7 @@ describe('PostsTable Pagination', () => {
       id: `post-${accountId}-${i}`,
       account_id: accountId,
       content: `Post ${i + 1} content for ${accountId}`,
+      image_url: null,
       scheduled_date: new Date(Date.now() + i * 60000).toISOString(),
       status: 'draft',
       source: 'manual',

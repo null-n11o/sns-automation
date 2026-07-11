@@ -6,6 +6,7 @@ import type { Platform } from '@/types'
 interface PublishOptions {
   platform: Platform
   content: string
+  image_url?: string | null
   access_token?: string | null
   access_token_secret?: string | null
   api_key?: string | null
@@ -14,7 +15,7 @@ interface PublishOptions {
 }
 
 export async function publishPost(options: PublishOptions): Promise<string> {
-  const { platform, content } = options
+  const { platform, content, image_url } = options
 
   if (platform === 'threads') {
     if (!options.access_token || !options.platform_user_id) {
@@ -24,10 +25,14 @@ export async function publishPost(options: PublishOptions): Promise<string> {
       accessToken: decrypt(options.access_token),
       userId: options.platform_user_id,
       content,
+      imageUrl: image_url,
     })
   }
 
   if (platform === 'x') {
+    if (image_url) {
+      throw new Error('Image posting is currently supported only for Threads')
+    }
     if (!options.api_key || !options.api_secret || !options.access_token || !options.access_token_secret) {
       throw new Error('X requires api_key, api_secret, access_token, and access_token_secret')
     }
