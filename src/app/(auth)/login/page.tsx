@@ -31,7 +31,7 @@ export default function LoginPage() {
 
   return (
     <div className="w-full max-w-md bg-white rounded-lg shadow p-8">
-      <h1 className="text-2xl font-bold mb-6">SNS Automation</h1>
+      <h1 className="text-2xl font-bold mb-6">NexAuto</h1>
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
           <Label htmlFor="email">Email</Label>

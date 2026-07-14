@@ -1,4 +1,4 @@
-# SNS Automation MCP Server
+# NexAuto MCP Server
 
 Claude Code または Claude Desktop からSNS投稿を操作するMCPサーバーです。
 
@@ -18,9 +18,9 @@ Claude Code または Claude Desktop からSNS投稿を操作するMCPサーバ�
 ```json
 {
   "mcpServers": {
-    "sns-automation": {
+    "nexauto": {
       "command": "node",
-      "args": ["/path/to/sns-automation/packages/mcp-server/dist/index.js"],
+      "args": ["/path/to/nexauto/packages/mcp-server/dist/index.js"],
       "env": {
         "SUPABASE_URL": "https://fdmhkjiqsrzktfmbqlxg.supabase.co",
         "SUPABASE_SERVICE_ROLE_KEY": "your-service-role-key"

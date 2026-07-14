@@ -16,7 +16,7 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 const server = new Server(
-  { name: 'sns-automation-mcp', version: '1.0.0' },
+  { name: 'nexauto-mcp', version: '1.0.0' },
   { capabilities: { tools: {} } }
 )
 
