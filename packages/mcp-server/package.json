@@ -1,7 +1,7 @@
 {
-  "name": "@sns-automation/mcp-server",
+  "name": "@nexauto/mcp-server",
   "version": "1.0.0",
-  "description": "MCP server for SNS Automation Platform",
+  "description": "MCP server for NexAuto Platform",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {

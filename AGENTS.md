@@ -21,7 +21,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Codex Setup
 - このリポジトリは Codex の trusted project として扱うこと。
-- MCP を使う場合は `scripts/codex-mcp-sns-automation.mjs` を起動コマンドにすること。
+- MCP を使う場合は `scripts/codex-mcp-nexauto.mjs` を起動コマンドにすること。
 - MCP の秘密値は `.env.local` から読む。`SUPABASE_SERVICE_ROLE_KEY` などの秘密値を `AGENTS.md`, README, Codex config, コミット対象ファイルへ直接書かないこと。
 
 ## Superpowers Artifacts

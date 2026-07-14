@@ -733,7 +733,7 @@ WHERE account_id = 'df3bd84a-b782-4c68-bbee-7697e95decaa' AND is_active = true;
 
 取得した `examples`（A〜Gに分類された高パフォーマンス実例）を文体・構成のリファレンスとする。これらは `dober-strategy-review` により毎週更新される。
 
-- 対象期間の投稿数を `references/formats.md` の7フォーマットに分配する（偏りなくバランスよく）。直近で使用したフォーマット・テーマと重複しないよう、`mcp__sns-automation__list_posts`で直近の投稿を確認してから作成する。
+- 対象期間の投稿数を `references/formats.md` の7フォーマットに分配する（偏りなくバランスよく）。直近で使用したフォーマット・テーマと重複しないよう、`mcp__nexauto__list_posts`で直近の投稿を確認してから作成する。
 - 各投稿は下記「文体ルール」に従う。
 ```
 

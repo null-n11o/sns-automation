@@ -1,5 +1,5 @@
 -- =============================================================================
--- SNS Automation Platform — Initial Schema Migration
+-- NexAuto Platform — Initial Schema Migration
 -- =============================================================================
 -- Tables:  companies, users, accounts, prompt_configs, posts, post_metrics
 -- RLS:     All tables secured with Row Level Security

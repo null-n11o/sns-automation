@@ -2,9 +2,9 @@
 
 ## 背景・目的
 
-`dober`リポジトリには `.claude/skills/dober-analysis` というスキルがあり、Notionに同期したThreadsデータを分析してレポートを生成している。これをこのリポジトリ(`sns-automation`)にも適用したい。
+`dober`リポジトリには `.claude/skills/dober-analysis` というスキルがあり、Notionに同期したThreadsデータを分析してレポートを生成している。これをこのリポジトリ(`nexauto`)にも適用したい。
 
-sns-automationは複数のSNSアカウント（Threads/X）を管理するアプリであり、Supabaseに `posts` / `accounts` / `post_metrics` / `account_metrics` テーブルを持つ。dober側のようなNotion経由ではなく、このアプリ自身のデータと、投稿時点のプラットフォームAPIから取得する最新メトリクスを使って分析レポートを生成する。
+NexAutoは複数のSNSアカウント（Threads/X）を管理するアプリであり、Supabaseに `posts` / `accounts` / `post_metrics` / `account_metrics` テーブルを持つ。dober側のようなNotion経由ではなく、このアプリ自身のデータと、投稿時点のプラットフォームAPIから取得する最新メトリクスを使って分析レポートを生成する。
 
 将来的に分析系スキルが増える可能性（競合分析、コンテンツ戦略など）を考慮し、機能を1つに絞った汎用スキルとして実装する。アカウント固有の追加設定（KPIなど）は今回は不要と判断し、対象外とする。
 

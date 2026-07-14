@@ -37,7 +37,7 @@ export function Sidebar({ role }: SidebarProps) {
     <aside className="w-56 bg-gray-900 text-white flex flex-col min-h-screen">
       <div className="px-4 py-5 border-b border-gray-700">
         <span className="text-sm font-semibold tracking-wide uppercase text-gray-400">
-          SNS Automation
+          NexAuto
         </span>
       </div>
       <nav className="flex-1 px-2 py-4 space-y-1">
