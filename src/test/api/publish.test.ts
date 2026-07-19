@@ -18,7 +18,10 @@ describe('publishPost', () => {
   })
 
   it('decrypts credentials before posting to Threads', async () => {
-    mockPostToThreads.mockResolvedValue('threads-post-id')
+    mockPostToThreads.mockResolvedValue({
+      platformPostId: 'threads-post-id',
+      meta: { containerId: 'c1', create: null, publish: null, failedStep: null },
+    })
 
     const encryptedToken = encrypt('real-access-token')
 

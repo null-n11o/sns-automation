@@ -1,5 +1,5 @@
 import { decrypt } from '@/lib/crypto'
-import { postToThreads } from '@/lib/threads-api'
+import { postToThreads, type PublishMeta } from '@/lib/threads-api'
 import { postToX } from '@/lib/x-api'
 import type { Platform } from '@/types'
 
@@ -14,7 +14,11 @@ interface PublishOptions {
   platform_user_id?: string | null
 }
 
-export async function publishPost(options: PublishOptions): Promise<string> {
+const EMPTY_META: PublishMeta = { containerId: null, create: null, publish: null, failedStep: null }
+
+export async function publishPost(
+  options: PublishOptions,
+): Promise<{ platformPostId: string; meta: PublishMeta }> {
   const { platform, content, image_url } = options
 
   if (platform === 'threads') {
@@ -36,13 +40,14 @@ export async function publishPost(options: PublishOptions): Promise<string> {
     if (!options.api_key || !options.api_secret || !options.access_token || !options.access_token_secret) {
       throw new Error('X requires api_key, api_secret, access_token, and access_token_secret')
     }
-    return postToX({
+    const platformPostId = await postToX({
       apiKey: decrypt(options.api_key),
       apiSecret: decrypt(options.api_secret),
       accessToken: decrypt(options.access_token),
       accessTokenSecret: decrypt(options.access_token_secret),
       content,
     })
+    return { platformPostId, meta: { ...EMPTY_META } }
   }
 
   throw new Error(`Unsupported platform: ${platform}`)
