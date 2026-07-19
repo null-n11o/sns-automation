@@ -172,3 +172,24 @@ export interface AccountContentStrategy {
   created_at: string
   activated_at: string | null
 }
+
+export interface PublishLog {
+  id: string
+  post_id: string
+  account_id: string
+  platform: Platform
+  trigger: 'cron' | 'manual'
+  result: 'success' | 'failed'
+  failed_step: 'create' | 'publish' | null
+  total_ms: number
+  create_http_status: number | null
+  container_id: string | null
+  create_ms: number | null
+  create_response: unknown | null
+  publish_http_status: number | null
+  platform_post_id: string | null
+  publish_ms: number | null
+  publish_response: unknown | null
+  error_message: string | null
+  created_at: string
+}
