@@ -47,6 +47,7 @@ describe('buildPublishLogEntry', () => {
     const meta: PublishMeta = {
       containerId: 'c1',
       create: { httpStatus: 200, ms: 100, response: { id: 'c1' } },
+      status: { httpStatus: 200, ms: 150, response: { status: 'FINISHED' } },
       publish: { httpStatus: 200, ms: 200, response: { id: 'p1' } },
       failedStep: null,
     }
@@ -71,6 +72,7 @@ describe('buildPublishLogEntry', () => {
     const meta: PublishMeta = {
       containerId: 'c1',
       create: { httpStatus: 200, ms: 100, response: { access_token: 'leak', id: 'c1' } },
+      status: null,
       publish: null,
       failedStep: 'publish',
     }
@@ -99,7 +101,7 @@ describe('publishAndLog', () => {
   it('logs a success row and returns platformPostId', async () => {
     vi.mocked(publishPost).mockResolvedValue({
       platformPostId: 'p1',
-      meta: { containerId: 'c1', create: null, publish: null, failedStep: null },
+      meta: { containerId: 'c1', create: null, status: null, publish: null, failedStep: null },
     })
     const { client, insert } = makeSupabase()
 
@@ -110,7 +112,7 @@ describe('publishAndLog', () => {
   })
 
   it('logs a failed row (with meta) and returns error when publish throws PublishError', async () => {
-    const meta: PublishMeta = { containerId: 'c1', create: null, publish: { httpStatus: 400, ms: 5, response: { error: { message: 'The requested resource does not exist' } } }, failedStep: 'publish' }
+    const meta: PublishMeta = { containerId: 'c1', create: null, status: { httpStatus: 200, ms: 50, response: { status: 'FINISHED' } }, publish: { httpStatus: 400, ms: 5, response: { error: { message: 'The requested resource does not exist' } } }, failedStep: 'publish' }
     vi.mocked(publishPost).mockRejectedValue(new PublishError('Threads publish error: The requested resource does not exist', meta))
     const { client, insert } = makeSupabase()
 
@@ -122,7 +124,7 @@ describe('publishAndLog', () => {
   })
 
   it('still returns the publish result even if log insert throws', async () => {
-    vi.mocked(publishPost).mockResolvedValue({ platformPostId: 'p1', meta: { containerId: null, create: null, publish: null, failedStep: null } })
+    vi.mocked(publishPost).mockResolvedValue({ platformPostId: 'p1', meta: { containerId: null, create: null, status: null, publish: null, failedStep: null } })
     const insert = vi.fn().mockRejectedValue(new Error('db down'))
     const client = { from: vi.fn(() => ({ insert })) }
 
