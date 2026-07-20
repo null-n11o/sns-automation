@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { publishPost } from '@/lib/publish'
-import type { Platform } from '@/types'
+import { publishAndLog } from '@/lib/publish-log'
 
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -20,31 +19,28 @@ export async function POST(request: Request) {
 
   const account = post.accounts as Record<string, string | null>
 
-  try {
-    const platformPostId = await publishPost({
-      platform: account.platform as Platform,
-      content: post.content,
-      image_url: post.image_url,
+  const { platformPostId, error } = await publishAndLog(supabase, {
+    post: { id: post.id, account_id: post.account_id, content: post.content, image_url: post.image_url ?? null },
+    account: {
+      platform: account.platform as never,
       access_token: account.access_token,
       access_token_secret: account.access_token_secret,
       api_key: account.api_key,
       api_secret: account.api_secret,
       platform_user_id: account.platform_user_id,
-    })
+    },
+    trigger: 'manual',
+  })
 
-    await supabase
-      .from('posts')
-      .update({
-        status: 'published',
-        published_at: new Date().toISOString(),
-        platform_post_id: platformPostId,
-      })
-      .eq('id', post_id)
-
-    return NextResponse.json({ ok: true })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    await supabase.from('posts').update({ status: 'failed', error_message: message }).eq('id', post_id)
-    return NextResponse.json({ error: message }, { status: 500 })
+  if (error) {
+    await supabase.from('posts').update({ status: 'failed', error_message: error }).eq('id', post_id)
+    return NextResponse.json({ error }, { status: 500 })
   }
+
+  await supabase
+    .from('posts')
+    .update({ status: 'published', published_at: new Date().toISOString(), platform_post_id: platformPostId })
+    .eq('id', post_id)
+
+  return NextResponse.json({ ok: true })
 }

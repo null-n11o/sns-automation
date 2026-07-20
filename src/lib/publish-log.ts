@@ -72,7 +72,7 @@ export function buildPublishLogEntry(input: BuildLogInput): PublishLogInsert {
 
 const EMPTY_META: PublishMeta = { containerId: null, create: null, publish: null, failedStep: null }
 
-type SupabaseLike = { from: (table: string) => { insert: (row: PublishLogInsert) => Promise<{ error: unknown }> } }
+type SupabaseLike = { from: (table: string) => { insert: (row: PublishLogInsert) => PromiseLike<{ error: unknown }> } }
 
 interface PublishAndLogArgs {
   post: { id: string; account_id: string; content: string; image_url: string | null }
