@@ -16,8 +16,9 @@ export interface PublishStepMeta {
 export interface PublishMeta {
   containerId: string | null
   create: PublishStepMeta | null
+  status: PublishStepMeta | null
   publish: PublishStepMeta | null
-  failedStep: 'create' | 'publish' | null
+  failedStep: 'create' | 'status' | 'publish' | null
 }
 
 export class PublishError extends Error {
@@ -29,10 +30,47 @@ export class PublishError extends Error {
   }
 }
 
+const CONTAINER_POLL_MAX_ATTEMPTS = 10
+const CONTAINER_POLL_INTERVAL_MS = 1000
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+// コンテナ作成は非同期で処理されるため、status=FINISHED を待たずに
+// threads_publish を呼ぶと "The requested resource does not exist" で失敗する。
+async function waitForContainerFinished(
+  containerId: string,
+  accessToken: string,
+): Promise<PublishStepMeta> {
+  const start = Date.now()
+  let lastMeta: PublishStepMeta = { httpStatus: null, ms: null, response: null }
+
+  for (let attempt = 1; attempt <= CONTAINER_POLL_MAX_ATTEMPTS; attempt++) {
+    const statusUrl = new URL(`${THREADS_API_BASE}/${containerId}`)
+    statusUrl.searchParams.set('fields', 'status,error_message')
+    statusUrl.searchParams.set('access_token', accessToken)
+
+    const res = await fetch(statusUrl.toString())
+    const data = await res.json()
+    lastMeta = { httpStatus: res.status, ms: Date.now() - start, response: data }
+
+    if (!res.ok || data.status === 'FINISHED' || data.status === 'ERROR' || data.status === 'EXPIRED') {
+      return lastMeta
+    }
+
+    if (attempt < CONTAINER_POLL_MAX_ATTEMPTS) {
+      await sleep(CONTAINER_POLL_INTERVAL_MS)
+    }
+  }
+
+  return lastMeta
+}
+
 export async function postToThreads(
   { accessToken, userId, content, imageUrl }: ThreadsPostOptions,
 ): Promise<{ platformPostId: string; meta: PublishMeta }> {
-  const meta: PublishMeta = { containerId: null, create: null, publish: null, failedStep: null }
+  const meta: PublishMeta = { containerId: null, create: null, status: null, publish: null, failedStep: null }
 
   // Step 1: Create media container
   const createUrl = new URL(`${THREADS_API_BASE}/${userId}/threads`)
@@ -54,7 +92,20 @@ export async function postToThreads(
   const containerId = createData.id
   meta.containerId = containerId
 
-  // Step 2: Publish the container
+  // Step 2: Wait for the container to finish processing before publishing
+  const statusMeta = await waitForContainerFinished(containerId, accessToken)
+  meta.status = statusMeta
+  const statusData = statusMeta.response as { status?: string; error_message?: string; error?: { message?: string } } | null
+
+  if (statusData?.status !== 'FINISHED') {
+    meta.failedStep = 'status'
+    const reason = statusData?.error_message
+      ?? statusData?.error?.message
+      ?? `Threads container did not finish processing in time (status: ${statusData?.status ?? 'unknown'})`
+    throw new PublishError(`Threads container error: ${reason}`, meta)
+  }
+
+  // Step 3: Publish the container
   const publishUrl = new URL(`${THREADS_API_BASE}/${userId}/threads_publish`)
   publishUrl.searchParams.set('creation_id', containerId)
   publishUrl.searchParams.set('access_token', accessToken)
