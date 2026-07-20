@@ -14,7 +14,7 @@ interface PublishOptions {
   platform_user_id?: string | null
 }
 
-const EMPTY_META: PublishMeta = { containerId: null, create: null, publish: null, failedStep: null }
+const EMPTY_META: PublishMeta = { containerId: null, create: null, status: null, publish: null, failedStep: null }
 
 export async function publishPost(
   options: PublishOptions,

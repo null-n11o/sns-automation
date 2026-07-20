@@ -24,7 +24,7 @@ export interface PublishLogInsert {
   platform: Platform
   trigger: 'cron' | 'manual'
   result: 'success' | 'failed'
-  failed_step: 'create' | 'publish' | null
+  failed_step: 'create' | 'status' | 'publish' | null
   total_ms: number
   create_http_status: number | null
   container_id: string | null
@@ -70,7 +70,7 @@ export function buildPublishLogEntry(input: BuildLogInput): PublishLogInsert {
   }
 }
 
-const EMPTY_META: PublishMeta = { containerId: null, create: null, publish: null, failedStep: null }
+const EMPTY_META: PublishMeta = { containerId: null, create: null, status: null, publish: null, failedStep: null }
 
 type SupabaseLike = { from: (table: string) => { insert: (row: PublishLogInsert) => PromiseLike<{ error: unknown }> } }
 
