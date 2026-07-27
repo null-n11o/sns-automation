@@ -12,12 +12,17 @@ type ThreadsAccount = {
 export async function collectThreadsFollowerSnapshots(
   supabase: SupabaseClient,
 ): Promise<number> {
-  const { data: accounts } = await supabase
+  const { data: accounts, error } = await supabase
     .from('accounts')
     .select('id, access_token, platform_user_id')
     .eq('platform', 'threads')
     .not('access_token', 'is', null)
     .not('platform_user_id', 'is', null)
+
+  if (error) {
+    console.error('Threads follower account query failed:', error.message)
+    return 0
+  }
 
   if (!accounts?.length) return 0
 
@@ -42,6 +47,12 @@ export async function collectThreadsFollowerSnapshots(
       return true
     }),
   )
+
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      console.error(`Threads follower collection failed for account ${(accounts as ThreadsAccount[])[index].id}`)
+    }
+  })
 
   return results.filter(result => result.status === 'fulfilled' && result.value).length
 }

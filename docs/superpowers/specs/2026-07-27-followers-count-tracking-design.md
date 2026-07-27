@@ -64,11 +64,11 @@ fetchThreadsFollowersCount({ userId, accessToken }): Promise<number | null>
 - レスポンス形に注意: `followers_count` は `total_value` 型で返る。
   - `data[].name === 'followers_count'` の要素の `total_value.value` を読む。
   - （投稿単位の `/insights` は `values[0].value` だが、ユーザーインサイトの total 系は `total_value.value`。形が異なる。）
-- 取得できない場合（フォロワー100人未満でメトリクス非返却、API エラー、値欠損）は `null` を返す。例外は投げない。
+- 取得できない場合（メトリクス非返却、権限・API エラー、値欠損・不正）は `null` を返す。例外は投げない。
 
 #### 2. `/api/metrics/fetch/route.ts`（変更）
 
-既存の投稿メトリクス収集処理の後に、フォロワー数収集ステップを追加する。
+service client 作成直後、投稿メトリクス処理やその早期 return より前に、フォロワー数収集ステップを追加する。
 
 - `accounts` から `platform = 'threads'` かつ `access_token` と `platform_user_id` が非 null のアカウントを取得。
 - 各アカウントについて `decrypt(access_token)` → `fetchThreadsFollowersCount({ userId: platform_user_id, accessToken })`。
@@ -82,11 +82,12 @@ fetchThreadsFollowersCount({ userId, accessToken }): Promise<number | null>
 ```
 Vercel Cron (日次 19:00 JST)
   → GET /api/metrics/fetch (Bearer CRON_SECRET)
-    → [既存] 投稿メトリクス収集 → post_metrics へ insert
+    → service client 作成
     → [新規] threads アカウント一覧取得
         → decrypt(access_token)
         → fetchThreadsFollowersCount()  ── null なら skip
         → account_metrics へ insert
+    → [既存] 投稿メトリクス収集 → post_metrics へ insert
   → 次回以降の分析レポートで週次トレンドに反映
 ```
 
