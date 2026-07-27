@@ -122,3 +122,89 @@ describe('PostsTable Pagination', () => {
     expectRangeText('全 60 件中 1 〜 50 件を表示')
   })
 })
+
+describe('PostsTable sorting and filters', () => {
+  const mockAccounts = [
+    { id: 'acc-1', account_name: 'Account One', platform: 'x' },
+  ]
+
+  const createPost = (overrides: Partial<Post> & Pick<Post, 'id' | 'content' | 'scheduled_date'>): Post => ({
+    account_id: 'acc-1',
+    image_url: null,
+    status: 'draft',
+    source: 'manual',
+    error_message: null,
+    published_at: null,
+    platform_post_id: null,
+    created_at: '2026-07-01T00:00:00.000Z',
+    ...overrides,
+  })
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    ))
+  })
+
+  it('初期表示は予約日時の最新順で投稿を表示する', () => {
+    render(<PostsTable
+      initialPosts={[
+        createPost({ id: 'old', content: '古い投稿', scheduled_date: '2026-07-01T10:00:00.000Z' }),
+        createPost({ id: 'new', content: '新しい投稿', scheduled_date: '2026-07-03T10:00:00.000Z' }),
+        createPost({ id: 'middle', content: '真ん中の投稿', scheduled_date: '2026-07-02T10:00:00.000Z' }),
+      ]}
+      accounts={mockAccounts}
+    />)
+
+    const rows = screen.getAllByRole('row').slice(1)
+    expect(rows.map(row => row.textContent)).toEqual([
+      expect.stringContaining('新しい投稿'),
+      expect.stringContaining('真ん中の投稿'),
+      expect.stringContaining('古い投稿'),
+    ])
+  })
+
+  it('ステータス、ソース、本文キーワードで投稿を絞り込める', () => {
+    render(<PostsTable
+      initialPosts={[
+        createPost({ id: 'match', content: 'AIで作った承認待ち投稿', scheduled_date: '2026-07-03T10:00:00.000Z', status: 'review', source: 'ai' }),
+        createPost({ id: 'status-miss', content: 'AIで作った下書き投稿', scheduled_date: '2026-07-02T10:00:00.000Z', status: 'draft', source: 'ai' }),
+        createPost({ id: 'source-miss', content: '手動の承認待ち投稿', scheduled_date: '2026-07-01T10:00:00.000Z', status: 'review', source: 'manual' }),
+      ]}
+      accounts={mockAccounts}
+    />)
+
+    fireEvent.change(screen.getByLabelText('ステータス'), { target: { value: 'review' } })
+    fireEvent.change(screen.getByLabelText('ソース'), { target: { value: 'ai' } })
+    fireEvent.change(screen.getByLabelText('本文検索'), { target: { value: '承認待ち' } })
+
+    expect(screen.getByText('AIで作った承認待ち投稿')).toBeInTheDocument()
+    expect(screen.queryByText('AIで作った下書き投稿')).not.toBeInTheDocument()
+    expect(screen.queryByText('手動の承認待ち投稿')).not.toBeInTheDocument()
+    expect(screen.getByText('1 件')).toBeInTheDocument()
+  })
+
+  it('フィルタ変更時にページを1ページ目へ戻す', () => {
+    const posts = Array.from({ length: 60 }, (_, i) => createPost({
+      id: `post-${i}`,
+      content: `投稿 ${i + 1}`,
+      scheduled_date: new Date(Date.UTC(2026, 6, 1, 0, i)).toISOString(),
+      status: i < 55 ? 'draft' : 'review',
+    }))
+
+    render(<PostsTable initialPosts={posts} accounts={mockAccounts} />)
+
+    fireEvent.click(screen.getByText('次へ'))
+    expect(screen.getByText('投稿 10')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('ステータス'), { target: { value: 'review' } })
+
+    expect(screen.queryByText((_content, element) => {
+      return element?.tagName.toLowerCase() === 'p' && (element?.textContent?.includes('件中') ?? false)
+    })).not.toBeInTheDocument()
+    expect(screen.getAllByText(/投稿 5[6-9]|投稿 60/)).toHaveLength(5)
+  })
+})

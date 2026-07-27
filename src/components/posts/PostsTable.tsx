@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { Post, PostStatus } from '@/types'
+import type { Post, PostSource, PostStatus } from '@/types'
 
 interface Account {
   id: string
@@ -21,6 +21,20 @@ interface Props {
 }
 
 const STATUSES: PostStatus[] = ['draft', 'review', 'ready', 'published', 'failed']
+const STATUS_LABELS: Record<PostStatus, string> = {
+  draft: '下書き',
+  review: 'レビュー',
+  ready: '投稿待ち',
+  published: '公開済み',
+  failed: '失敗',
+}
+const SOURCE_LABELS: Record<PostSource, string> = {
+  ai: 'AI',
+  manual: '手動',
+}
+type StatusFilter = 'all' | PostStatus
+type SourceFilter = 'all' | PostSource
+type SortOrder = 'scheduled_desc' | 'scheduled_asc' | 'created_desc' | 'created_asc'
 
 export function PostsTable({ initialPosts, accounts }: Props) {
   const [posts, setPosts] = useState(initialPosts)
@@ -33,10 +47,23 @@ export function PostsTable({ initialPosts, accounts }: Props) {
   const [publishingId, setPublishingId] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('scheduled_desc')
 
   const filteredPosts = posts
     .filter(p => p.account_id === selectedAccountId)
-    .sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime())
+    .filter(p => statusFilter === 'all' || p.status === statusFilter)
+    .filter(p => sourceFilter === 'all' || p.source === sourceFilter)
+    .filter(p => p.content.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    .sort((a, b) => {
+      const [field, direction] = sortOrder.split('_') as ['scheduled' | 'created', 'asc' | 'desc']
+      const aDate = field === 'scheduled' ? a.scheduled_date : a.created_at
+      const bDate = field === 'scheduled' ? b.scheduled_date : b.created_at
+      const diff = new Date(aDate).getTime() - new Date(bDate).getTime()
+      return direction === 'asc' ? diff : -diff
+    })
 
   const itemsPerPage = 50
   const totalItems = filteredPosts.length
@@ -144,6 +171,8 @@ export function PostsTable({ initialPosts, accounts }: Props) {
 
   const canEdit = (status: PostStatus) => status === 'draft' || status === 'review' || status === 'ready'
 
+  const resetPage = () => setCurrentPage(1)
+
   return (
     <div>
       {/* アカウントタブ */}
@@ -179,6 +208,69 @@ export function PostsTable({ initialPosts, accounts }: Props) {
           </Button>
           <Button onClick={() => setShowCreateModal(true)}>+ 新規投稿</Button>
         </div>
+      </div>
+
+      {/* フィルタ・ソート */}
+      <div className="grid gap-3 mb-4 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
+          本文検索
+          <Input
+            value={searchQuery}
+            onChange={e => {
+              setSearchQuery(e.target.value)
+              resetPage()
+            }}
+            placeholder="キーワード"
+            className="h-9 text-sm font-normal text-gray-900"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
+          ステータス
+          <select
+            value={statusFilter}
+            onChange={e => {
+              setStatusFilter(e.target.value as StatusFilter)
+              resetPage()
+            }}
+            className="h-9 rounded-lg border border-input bg-white px-3 text-sm font-normal text-gray-900"
+          >
+            <option value="all">すべて</option>
+            {STATUSES.map(status => (
+              <option key={status} value={status}>{STATUS_LABELS[status]}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
+          ソース
+          <select
+            value={sourceFilter}
+            onChange={e => {
+              setSourceFilter(e.target.value as SourceFilter)
+              resetPage()
+            }}
+            className="h-9 rounded-lg border border-input bg-white px-3 text-sm font-normal text-gray-900"
+          >
+            <option value="all">すべて</option>
+            <option value="ai">{SOURCE_LABELS.ai}</option>
+            <option value="manual">{SOURCE_LABELS.manual}</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-medium text-gray-600">
+          並び替え
+          <select
+            value={sortOrder}
+            onChange={e => {
+              setSortOrder(e.target.value as SortOrder)
+              resetPage()
+            }}
+            className="h-9 rounded-lg border border-input bg-white px-3 text-sm font-normal text-gray-900"
+          >
+            <option value="scheduled_desc">予約日時が新しい順</option>
+            <option value="scheduled_asc">予約日時が古い順</option>
+            <option value="created_desc">作成日が新しい順</option>
+            <option value="created_asc">作成日が古い順</option>
+          </select>
+        </label>
       </div>
 
       {/* テーブル */}
