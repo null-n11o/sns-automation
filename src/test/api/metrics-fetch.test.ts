@@ -1,12 +1,19 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 
-const { mockFetchThreadsMetrics, mockFetchXMetrics, mockCreateServiceClient } = vi.hoisted(() => ({
+const {
+  mockCollectFollowers,
+  mockFetchThreadsMetrics,
+  mockFetchXMetrics,
+  mockCreateServiceClient,
+} = vi.hoisted(() => ({
+  mockCollectFollowers: vi.fn(),
   mockFetchThreadsMetrics: vi.fn(),
   mockFetchXMetrics: vi.fn(),
   mockCreateServiceClient: vi.fn(),
 }))
 
+vi.mock('@/lib/collect-followers', () => ({ collectThreadsFollowerSnapshots: mockCollectFollowers }))
 vi.mock('@/lib/threads-metrics', () => ({ fetchThreadsPostMetrics: mockFetchThreadsMetrics }))
 vi.mock('@/lib/x-metrics', () => ({ fetchXPostMetrics: mockFetchXMetrics }))
 vi.mock('@/lib/supabase/server', () => ({ createServiceClient: mockCreateServiceClient }))
@@ -41,17 +48,25 @@ describe('GET /api/metrics/fetch', () => {
     process.env.CRON_SECRET = 'test-secret'
   })
 
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockCollectFollowers.mockResolvedValue(2)
+  })
+
   it('CRON_SECRET が一致しない場合 401 を返す', async () => {
     const res = await GET(makeRequest('wrong-secret'))
     expect(res.status).toBe(401)
+    expect(mockCollectFollowers).not.toHaveBeenCalled()
   })
 
-  it('メトリクス取得対象ポストがない場合 fetched: 0 を返す', async () => {
+  it('投稿がない場合もフォロワー数を収集し fetched: 0 を返す', async () => {
     makeSupabaseMock([])
     const res = await GET(makeRequest())
     const body = await res.json()
     expect(res.status).toBe(200)
     expect(body.fetched).toBe(0)
+    expect(body.followersCollected).toBe(2)
+    expect(mockCollectFollowers).toHaveBeenCalledTimes(1)
   })
 
   it('Threads の投稿のメトリクスを取得してDBに保存する', async () => {
@@ -82,6 +97,7 @@ describe('GET /api/metrics/fetch', () => {
 
     expect(res.status).toBe(200)
     expect(body.fetched).toBe(1)
+    expect(body.followersCollected).toBe(2)
     expect(insert).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({ post_id: 'post-1', impressions: 100, likes: 10 }),
@@ -117,6 +133,7 @@ describe('GET /api/metrics/fetch', () => {
 
     expect(res.status).toBe(200)
     expect(body.fetched).toBe(1)
+    expect(body.followersCollected).toBe(2)
     expect(insert).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({ post_id: 'post-2', impressions: 0, likes: 20 }),
@@ -150,5 +167,6 @@ describe('GET /api/metrics/fetch', () => {
 
     expect(res.status).toBe(200)
     expect(body.fetched).toBe(0)
+    expect(body.followersCollected).toBe(2)
   })
 })

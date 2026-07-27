@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { fetchThreadsPostMetrics } from '@/lib/threads-metrics'
 import { fetchXPostMetrics } from '@/lib/x-metrics'
 import { decrypt } from '@/lib/crypto'
+import { collectThreadsFollowerSnapshots } from '@/lib/collect-followers'
 
 const MILESTONES_MS = [
   1 * 60 * 60 * 1000,
@@ -29,6 +30,7 @@ export async function GET(request: Request) {
   }
 
   const supabase = await createServiceClient()
+  const followersCollected = await collectThreadsFollowerSnapshots(supabase)
 
   const { data: posts } = await supabase
     .from('posts')
@@ -37,7 +39,7 @@ export async function GET(request: Request) {
     .not('published_at', 'is', null)
     .not('platform_post_id', 'is', null)
 
-  if (!posts?.length) return NextResponse.json({ fetched: 0 })
+  if (!posts?.length) return NextResponse.json({ fetched: 0, followersCollected })
 
   const now = Date.now()
   const toFetch: FetchTarget[] = []
@@ -85,7 +87,7 @@ export async function GET(request: Request) {
     }
   }
 
-  if (!toFetch.length) return NextResponse.json({ fetched: 0 })
+  if (!toFetch.length) return NextResponse.json({ fetched: 0, followersCollected })
 
   const results = await Promise.allSettled(
     toFetch.map(async (target) => {
@@ -104,5 +106,5 @@ export async function GET(request: Request) {
   )
 
   const fetched = results.filter(r => r.status === 'fulfilled').length
-  return NextResponse.json({ fetched, total: toFetch.length })
+  return NextResponse.json({ fetched, total: toFetch.length, followersCollected })
 }
