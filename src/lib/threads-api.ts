@@ -5,6 +5,7 @@ interface ThreadsPostOptions {
   userId: string
   content: string
   imageUrl?: string | null
+  replyToId?: string | null
 }
 
 export interface PublishStepMeta {
@@ -68,7 +69,7 @@ async function waitForContainerFinished(
 }
 
 export async function postToThreads(
-  { accessToken, userId, content, imageUrl }: ThreadsPostOptions,
+  { accessToken, userId, content, imageUrl, replyToId }: ThreadsPostOptions,
 ): Promise<{ platformPostId: string; meta: PublishMeta }> {
   const meta: PublishMeta = { containerId: null, create: null, status: null, publish: null, failedStep: null }
 
@@ -77,6 +78,7 @@ export async function postToThreads(
   createUrl.searchParams.set('media_type', imageUrl ? 'IMAGE' : 'TEXT')
   createUrl.searchParams.set('text', content)
   if (imageUrl) createUrl.searchParams.set('image_url', imageUrl)
+  if (replyToId) createUrl.searchParams.set('reply_to_id', replyToId)
   createUrl.searchParams.set('access_token', accessToken)
 
   const createStart = Date.now()

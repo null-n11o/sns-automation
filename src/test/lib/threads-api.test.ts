@@ -167,4 +167,44 @@ describe('postToThreads', () => {
     expect(err.meta.publish?.httpStatus).toBe(400)
     expect(err.meta.publish?.response).toMatchObject({ error: { message: 'The requested resource does not exist' } })
   })
+
+  it('adds reply_to_id to the create container request when replyToId is provided', async () => {
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ id: 'container-123' }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ status: 'FINISHED' }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ id: 'reply-456' }) })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const resultPromise = postToThreads({
+      accessToken: 'token-abc',
+      userId: 'user-789',
+      content: 'ぶら下げリプ',
+      replyToId: 'parent-999',
+    })
+    await vi.runAllTimersAsync()
+    const result = await resultPromise
+
+    expect(result.platformPostId).toBe('reply-456')
+    const [createUrl] = mockFetch.mock.calls[0]
+    expect(createUrl).toContain('reply_to_id=parent-999')
+  })
+
+  it('does NOT add reply_to_id when replyToId is not provided', async () => {
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ id: 'container-123' }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ status: 'FINISHED' }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ id: 'post-456' }) })
+    vi.stubGlobal('fetch', mockFetch)
+
+    const resultPromise = postToThreads({
+      accessToken: 'token-abc',
+      userId: 'user-789',
+      content: '通常投稿',
+    })
+    await vi.runAllTimersAsync()
+    await resultPromise
+
+    const [createUrl] = mockFetch.mock.calls[0]
+    expect(createUrl).not.toContain('reply_to_id')
+  })
 })
