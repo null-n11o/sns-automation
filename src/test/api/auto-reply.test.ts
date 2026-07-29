@@ -1,0 +1,148 @@
+// @vitest-environment node
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
+
+const {
+  mockFetchThreadsMetrics,
+  mockPostToThreads,
+  mockCreateServiceClient,
+} = vi.hoisted(() => ({
+  mockFetchThreadsMetrics: vi.fn(),
+  mockPostToThreads: vi.fn(),
+  mockCreateServiceClient: vi.fn(),
+}))
+
+vi.mock('@/lib/threads-metrics', () => ({ fetchThreadsPostMetrics: mockFetchThreadsMetrics }))
+vi.mock('@/lib/threads-api', () => ({ postToThreads: mockPostToThreads }))
+vi.mock('@/lib/supabase/server', () => ({ createServiceClient: mockCreateServiceClient }))
+vi.mock('@/lib/crypto', () => ({ decrypt: (s: string) => s }))
+
+import { GET } from '@/app/api/cron/auto-reply/route'
+
+const CONFIG = {
+  enabled: true,
+  threshold: 500,
+  window_minutes: 60,
+  templates: ['公式LINEはこちら https://lin.ee/NnXNfzd'],
+}
+
+function makeRequest(secret = 'test-secret') {
+  return new Request('http://localhost/api/cron/auto-reply', {
+    headers: { authorization: `Bearer ${secret}` },
+  })
+}
+
+function makeSupabaseMock(posts: object[]) {
+  const updateEq = vi.fn().mockResolvedValue({ error: null })
+  const update = vi.fn().mockReturnValue({ eq: updateEq })
+  const selectChain = {
+    eq: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(),
+    then: (resolve: (v: { data: object[] }) => void) => resolve({ data: posts }),
+  }
+  const from = vi.fn().mockImplementation((table: string) => {
+    if (table === 'posts') return { select: vi.fn().mockReturnValue(selectChain), update }
+    return {}
+  })
+  mockCreateServiceClient.mockResolvedValue({ from })
+  return { from, update, updateEq, selectChain }
+}
+
+function threadsPost(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'post-1',
+    platform_post_id: 'media-1',
+    published_at: new Date().toISOString(), // just now → within window
+    cta_reply_posted: false,
+    accounts: {
+      platform: 'threads',
+      access_token: 'enc-token',
+      platform_user_id: 'user-1',
+      auto_reply_config: CONFIG,
+    },
+    ...overrides,
+  }
+}
+
+describe('GET /api/cron/auto-reply', () => {
+  beforeAll(() => {
+    process.env.CRON_SECRET = 'test-secret'
+  })
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockPostToThreads.mockResolvedValue({ platformPostId: 'reply-1', meta: {} })
+  })
+
+  it('CRON_SECRET が一致しない場合 401 を返す', async () => {
+    const res = await GET(makeRequest('wrong'))
+    expect(res.status).toBe(401)
+    expect(mockCreateServiceClient).not.toHaveBeenCalled()
+  })
+
+  it('インプレが閾値以上ならリプを投稿し発火フラグを立てる', async () => {
+    mockFetchThreadsMetrics.mockResolvedValue({ impressions: 800, likes: 5, replies: 0, reposts: 0 })
+    const { update, updateEq } = makeSupabaseMock([threadsPost()])
+
+    const res = await GET(makeRequest())
+    const body = await res.json()
+
+    expect(body.replied).toBe(1)
+    expect(mockPostToThreads).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accessToken: 'enc-token', // decrypt はテストでは identity
+        userId: 'user-1',
+        content: CONFIG.templates[0],
+        replyToId: 'media-1',
+      }),
+    )
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ cta_reply_posted: true, cta_reply_post_id: 'reply-1' }),
+    )
+    expect(updateEq).toHaveBeenCalledWith('id', 'post-1')
+  })
+
+  it('インプレが閾値未満ならリプを投稿しない', async () => {
+    mockFetchThreadsMetrics.mockResolvedValue({ impressions: 300, likes: 1, replies: 0, reposts: 0 })
+    makeSupabaseMock([threadsPost()])
+
+    const res = await GET(makeRequest())
+    const body = await res.json()
+
+    expect(body.replied).toBe(0)
+    expect(mockPostToThreads).not.toHaveBeenCalled()
+  })
+
+  it('publish後ウィンドウ(60分)を過ぎた投稿はメトリクスを見ずスキップする', async () => {
+    const old = new Date(Date.now() - 90 * 60 * 1000).toISOString()
+    makeSupabaseMock([threadsPost({ published_at: old })])
+
+    const res = await GET(makeRequest())
+    const body = await res.json()
+
+    expect(body.replied).toBe(0)
+    expect(mockFetchThreadsMetrics).not.toHaveBeenCalled()
+    expect(mockPostToThreads).not.toHaveBeenCalled()
+  })
+
+  it('config が enabled=false のアカウントはスキップする', async () => {
+    makeSupabaseMock([threadsPost({
+      accounts: { platform: 'threads', access_token: 'enc-token', platform_user_id: 'user-1',
+        auto_reply_config: { ...CONFIG, enabled: false } },
+    })])
+
+    const res = await GET(makeRequest())
+    const body = await res.json()
+
+    expect(body.replied).toBe(0)
+    expect(mockFetchThreadsMetrics).not.toHaveBeenCalled()
+  })
+
+  it('未発火 published のみを対象にクエリする（冪等フィルタ）', async () => {
+    mockFetchThreadsMetrics.mockResolvedValue({ impressions: 800, likes: 0, replies: 0, reposts: 0 })
+    const { selectChain } = makeSupabaseMock([threadsPost()])
+
+    await GET(makeRequest())
+
+    expect(selectChain.eq).toHaveBeenCalledWith('status', 'published')
+    expect(selectChain.eq).toHaveBeenCalledWith('cta_reply_posted', false)
+  })
+})
