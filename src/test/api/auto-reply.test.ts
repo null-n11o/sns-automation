@@ -63,6 +63,27 @@ function threadsPost(overrides: Record<string, unknown> = {}) {
   }
 }
 
+const TIERS = [
+  { window_minutes: 30, threshold: 200 },
+  { window_minutes: 60, threshold: 350 },
+  { window_minutes: 360, threshold: 500 },
+  { window_minutes: 600, threshold: 600 },
+]
+const TIERED_CONFIG = { enabled: true, tiers: TIERS, templates: CONFIG.templates }
+
+function tieredPost(minutesAgo: number, overrides: Record<string, unknown> = {}) {
+  return threadsPost({
+    published_at: new Date(Date.now() - minutesAgo * 60 * 1000).toISOString(),
+    accounts: {
+      platform: 'threads',
+      access_token: 'enc-token',
+      platform_user_id: 'user-1',
+      auto_reply_config: TIERED_CONFIG,
+    },
+    ...overrides,
+  })
+}
+
 describe('GET /api/cron/auto-reply', () => {
   beforeAll(() => {
     process.env.CRON_SECRET = 'test-secret'
@@ -134,6 +155,71 @@ describe('GET /api/cron/auto-reply', () => {
 
     expect(body.replied).toBe(0)
     expect(mockFetchThreadsMetrics).not.toHaveBeenCalled()
+  })
+
+  describe('tiers（OR条件）', () => {
+    it('tier1: 30分以内かつ200インプレ以上で発火する', async () => {
+      mockFetchThreadsMetrics.mockResolvedValue({ impressions: 250, likes: 0, replies: 0, reposts: 0 })
+      makeSupabaseMock([tieredPost(20)])
+
+      const res = await GET(makeRequest())
+      const body = await res.json()
+
+      expect(body.replied).toBe(1)
+      expect(mockPostToThreads).toHaveBeenCalledTimes(1)
+    })
+
+    it('30分を過ぎた250インプレは発火しない（tier2の350未満）', async () => {
+      mockFetchThreadsMetrics.mockResolvedValue({ impressions: 250, likes: 0, replies: 0, reposts: 0 })
+      makeSupabaseMock([tieredPost(45)])
+
+      const res = await GET(makeRequest())
+      const body = await res.json()
+
+      expect(body.replied).toBe(0)
+      expect(mockPostToThreads).not.toHaveBeenCalled()
+    })
+
+    it('tier2: 1時間以内かつ350インプレ以上で発火する', async () => {
+      mockFetchThreadsMetrics.mockResolvedValue({ impressions: 400, likes: 0, replies: 0, reposts: 0 })
+      makeSupabaseMock([tieredPost(45)])
+
+      const res = await GET(makeRequest())
+      const body = await res.json()
+
+      expect(body.replied).toBe(1)
+    })
+
+    it('tier3: 6時間以内かつ500インプレ以上で発火する', async () => {
+      mockFetchThreadsMetrics.mockResolvedValue({ impressions: 520, likes: 0, replies: 0, reposts: 0 })
+      makeSupabaseMock([tieredPost(300)])
+
+      const res = await GET(makeRequest())
+      const body = await res.json()
+
+      expect(body.replied).toBe(1)
+    })
+
+    it('tier4: 10時間以内かつ600インプレ以上で発火する', async () => {
+      mockFetchThreadsMetrics.mockResolvedValue({ impressions: 650, likes: 0, replies: 0, reposts: 0 })
+      makeSupabaseMock([tieredPost(540)])
+
+      const res = await GET(makeRequest())
+      const body = await res.json()
+
+      expect(body.replied).toBe(1)
+    })
+
+    it('最大ウィンドウ(10時間)超過はメトリクスを見ずスキップする', async () => {
+      makeSupabaseMock([tieredPost(660)])
+
+      const res = await GET(makeRequest())
+      const body = await res.json()
+
+      expect(body.replied).toBe(0)
+      expect(mockFetchThreadsMetrics).not.toHaveBeenCalled()
+      expect(mockPostToThreads).not.toHaveBeenCalled()
+    })
   })
 
   it('未発火 published のみを対象にクエリする（冪等フィルタ）', async () => {
