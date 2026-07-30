@@ -4,11 +4,23 @@ import { fetchThreadsPostMetrics } from '@/lib/threads-metrics'
 import { postToThreads } from '@/lib/threads-api'
 import { decrypt } from '@/lib/crypto'
 
+interface AutoReplyTier {
+  window_minutes: number
+  threshold: number
+}
+
 interface AutoReplyConfig {
   enabled?: boolean
   threshold?: number
   window_minutes?: number
+  tiers?: AutoReplyTier[]
   templates?: string[]
+}
+
+// tiers があればそれを、無ければ従来の単一 threshold/window_minutes を1段として扱う
+function resolveTiers(config: AutoReplyConfig): AutoReplyTier[] {
+  if (config.tiers?.length) return config.tiers
+  return [{ window_minutes: config.window_minutes ?? 60, threshold: config.threshold ?? 500 }]
 }
 
 interface AccountShape {
@@ -49,9 +61,10 @@ export async function GET(request: Request) {
     const config = account?.auto_reply_config
     if (!account || account.platform !== 'threads' || !config?.enabled) return false
     if (!account.access_token || !account.platform_user_id) return false
-    const windowMs = (config.window_minutes ?? 60) * 60 * 1000
+    // 最大ウィンドウ内でなければメトリクスを見ずスキップ
+    const maxWindowMs = Math.max(...resolveTiers(config).map((t) => t.window_minutes)) * 60 * 1000
     const elapsed = now - new Date(post.published_at as string).getTime()
-    return elapsed >= 0 && elapsed <= windowMs
+    return elapsed >= 0 && elapsed <= maxWindowMs
   })
 
   if (!candidates.length) return NextResponse.json({ replied: 0, checked: 0 })
@@ -61,7 +74,7 @@ export async function GET(request: Request) {
       const accountRaw = post.accounts as unknown
       const account = (Array.isArray(accountRaw) ? accountRaw[0] : accountRaw) as AccountShape
       const config = account.auto_reply_config as AutoReplyConfig
-      const threshold = config.threshold ?? 500
+      const tiers = resolveTiers(config)
       const templates = config.templates ?? []
       if (!templates.length) return { replied: false }
 
@@ -69,7 +82,12 @@ export async function GET(request: Request) {
       const mediaId = post.platform_post_id as string
 
       const metrics = await fetchThreadsPostMetrics({ mediaId, accessToken })
-      if (metrics.impressions < threshold) return { replied: false }
+      const elapsed = now - new Date(post.published_at as string).getTime()
+      // いずれかの tier（経過時間 ≤ window かつ インプレ ≥ threshold）を満たせば発火
+      const fired = tiers.some(
+        (t) => elapsed <= t.window_minutes * 60 * 1000 && metrics.impressions >= t.threshold,
+      )
+      if (!fired) return { replied: false }
 
       const { platformPostId } = await postToThreads({
         accessToken,

@@ -13,8 +13,13 @@ const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
 
 const AUTO_REPLY_CONFIG = {
   enabled: true,
-  threshold: 500,
-  window_minutes: 60,
+  // いずれかの tier（経過時間 ≤ window_minutes かつ インプレ ≥ threshold）を満たせば発火
+  tiers: [
+    { window_minutes: 30, threshold: 200 },
+    { window_minutes: 60, threshold: 350 },
+    { window_minutes: 360, threshold: 500 },
+    { window_minutes: 600, threshold: 600 },
+  ],
   templates: [
     '公式LINE登録者に以下無料で配布しておりますのでぜひ。「無料特典を受け取る」とメッセージお願いいたします。\nnote記事『人生をイージーモードに変える「規律」の教科書：一流の男たちが実践するメンタルと習慣の作り方』\nhttps://lin.ee/NnXNfzd',
   ],

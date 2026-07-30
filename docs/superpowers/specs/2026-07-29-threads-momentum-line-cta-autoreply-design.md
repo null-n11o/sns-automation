@@ -96,13 +96,19 @@ ALTER TABLE accounts
 ```json
 {
   "enabled": true,
-  "threshold": 500,
-  "window_minutes": 60,
+  "tiers": [
+    { "window_minutes": 30, "threshold": 200 },
+    { "window_minutes": 60, "threshold": 350 },
+    { "window_minutes": 360, "threshold": 500 },
+    { "window_minutes": 600, "threshold": 600 }
+  ],
   "templates": [
     "公式LINE登録者に以下無料で配布しておりますのでぜひ。「無料特典を受け取る」とメッセージお願いいたします。\nnote記事『人生をイージーモードに変える「規律」の教科書：一流の男たちが実践するメンタルと習慣の作り方』\nhttps://lin.ee/NnXNfzd"
   ]
 }
 ```
+
+`tiers` は OR 条件のモメンタムゲート。各 tier は「publish後経過時間 ≤ `window_minutes` かつ インプレ ≥ `threshold`」で、**いずれか1つでも成立すれば発火**する。監視は全 tier の最大 `window_minutes`（=10時間）までで打ち切る。`tiers` 省略時は従来どおり単一の `threshold`/`window_minutes`（既定 `500 / 60分`）にフォールバックする。
 
 Dober アカウント（`df3bd84a-…`）にのみこの config を投入する。他アカウントは `NULL`（＝無効）。
 
