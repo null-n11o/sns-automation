@@ -90,3 +90,79 @@ export async function deleteAccount(accountId: string) {
   revalidatePath('/accounts')
   return { error: null }
 }
+
+interface AutoReplyTierInput {
+  hours: number
+  threshold: number
+}
+
+interface AutoReplyConfigInput {
+  enabled: boolean
+  tiers: AutoReplyTierInput[]
+  templates: string[]
+}
+
+export async function updateAutoReplyConfig(
+  accountId: string,
+  input: AutoReplyConfigInput,
+): Promise<{ error: string | null }> {
+  const profile = await getAdminProfile()
+  if (!profile) return { error: '管理者権限が必要です' }
+
+  const service = await createServiceClient()
+  const { data: account } = await service
+    .from('accounts')
+    .select('company_id, platform, auto_reply_config')
+    .eq('id', accountId)
+    .single()
+
+  if (!account || account.company_id !== profile.company_id) {
+    return { error: '操作権限がありません' }
+  }
+
+  const tiers = input.tiers
+    .filter(
+      (t) =>
+        Number.isFinite(t.hours) &&
+        t.hours > 0 &&
+        Number.isFinite(t.threshold) &&
+        t.threshold > 0,
+    )
+    .map((t) => ({
+      window_minutes: Math.round(t.hours * 60),
+      threshold: Math.round(t.threshold),
+    }))
+
+  const templates = input.templates.map((t) => t.trim()).filter((t) => t.length > 0)
+
+  if (input.enabled) {
+    if (tiers.length < 1 || tiers.length > 4) {
+      return { error: '条件は1〜4個で設定してください' }
+    }
+    if (templates.length < 1) {
+      return { error: 'リプ文面を1つ以上入力してください' }
+    }
+  }
+
+  const existing = (account.auto_reply_config ?? {}) as {
+    tiers?: { window_minutes: number; threshold: number }[]
+    templates?: string[]
+  }
+
+  const config = {
+    enabled: input.enabled,
+    tiers: tiers.length ? tiers : (existing.tiers ?? []),
+    templates: templates.length ? templates : (existing.templates ?? []),
+  }
+
+  const { error } = await service
+    .from('accounts')
+    .update({ auto_reply_config: config })
+    .eq('id', accountId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/accounts')
+  revalidatePath(`/accounts/${accountId}`)
+  return { error: null }
+}

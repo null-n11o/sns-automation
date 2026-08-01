@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { PostsTable } from '@/components/posts/PostsTable'
@@ -22,7 +23,7 @@ export default async function PostsPage() {
       <h1 className="text-xl font-semibold mb-6">投稿管理</h1>
       {!accounts?.length ? (
         <p className="text-gray-500 text-sm">
-          アカウントがありません。先に<a href="/accounts" className="underline">アカウントを登録</a>してください。
+          アカウントがありません。先に<Link href="/accounts" className="underline">アカウントを登録</Link>してください。
         </p>
       ) : (
         <PostsTable initialPosts={posts ?? []} accounts={accounts} />

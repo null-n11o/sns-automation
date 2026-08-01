@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import {
@@ -29,7 +30,7 @@ export default async function AccountsPage() {
 
   const { data: accounts } = await supabase
     .from('accounts')
-    .select('id, platform, account_name, posting_times, created_at')
+    .select('id, platform, account_name, posting_times, auto_reply_config, created_at')
     .eq('company_id', profile.company_id)
     .order('created_at', { ascending: true })
 
@@ -53,6 +54,7 @@ export default async function AccountsPage() {
               <TableHead>アカウント名</TableHead>
               <TableHead>プラットフォーム</TableHead>
               <TableHead>投稿時刻</TableHead>
+              <TableHead>自動リプライ</TableHead>
               <TableHead>登録日</TableHead>
               {isAdmin && <TableHead />}
             </TableRow>
@@ -72,11 +74,34 @@ export default async function AccountsPage() {
                       ? account.posting_times.join(', ')
                       : '—'}
                   </TableCell>
+                  <TableCell>
+                    {account.platform === 'threads' ? (
+                      <Badge
+                        variant={
+                          (account.auto_reply_config as { enabled?: boolean } | null)?.enabled
+                            ? 'default'
+                            : 'secondary'
+                        }
+                      >
+                        {(account.auto_reply_config as { enabled?: boolean } | null)?.enabled
+                          ? 'ON'
+                          : 'OFF'}
+                      </Badge>
+                    ) : (
+                      <span className="text-sm text-gray-400">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-sm text-gray-500">
                     {new Date(account.created_at).toLocaleDateString('ja-JP')}
                   </TableCell>
                   {isAdmin && (
-                    <TableCell className="text-right">
+                    <TableCell className="text-right space-x-3">
+                      <Link
+                        href={`/accounts/${account.id}`}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        設定
+                      </Link>
                       <DeleteAccountButton
                         accountId={account.id}
                         accountName={account.account_name}
@@ -88,7 +113,7 @@ export default async function AccountsPage() {
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={isAdmin ? 5 : 4}
+                  colSpan={isAdmin ? 6 : 5}
                   className="text-center text-gray-400 text-sm py-8"
                 >
                   アカウントがありません
