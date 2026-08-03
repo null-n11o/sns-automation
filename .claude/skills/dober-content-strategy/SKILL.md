@@ -67,6 +67,8 @@ JST → UTC変換（`scheduled_date`に使用）:
 - 12:00 JST = 同日 03:00 UTC
 - 20:00 JST = 同日 11:00 UTC
 
+**重要（枠時刻のズレ防止）**: `create_post` / `update_post` の `scheduled_date` はスキーマ上 `YYYY-MM-DD` と表示されるが、日付だけを渡すと **00:00 UTC 固定**で登録され、7:30 / 12:00 / 20:00 の枠にならない。**必ず上記UTC換算した ISO 8601 日時文字列で渡す**こと（例: `2026-08-05T22:30:00+00:00` = 8/5 7:30 JST）。システム側での枠の自動配分は行われない。
+
 ### Step 2: 投稿内容を作成する
 
 まず、現在アクティブな参照実例セットをDBから読み込む。`mcp__supabase__execute_sql`（project_id: `fdmhkjiqsrzktfmbqlxg`）で実行:
@@ -88,7 +90,7 @@ WHERE account_id = 'df3bd84a-b782-4c68-bbee-7697e95decaa' AND is_active = true;
 
 ### Step 3: draftとして登録する
 
-`mcp__sns-automation__create_post`で、`account_id: df3bd84a-b782-4c68-bbee-7697e95decaa`, `status: 'draft'`, `source: 'ai'`として各投稿を登録する。
+`mcp__sns-automation__create_post`で、`account_id: df3bd84a-b782-4c68-bbee-7697e95decaa`, `status: 'draft'`, `source: 'ai'`として各投稿を登録する。`scheduled_date` は Step 1 の表に従い、**枠時刻をUTC換算した ISO 8601 日時文字列**（例: `2026-08-05T03:00:00+00:00`）で渡す。日付のみを渡すと 00:00 UTC で登録され枠がズレるので不可。登録後、返り値の `scheduled_date` が意図した時刻になっているか確認する。
 
 ### Step 4: ユーザーに一覧を提示する
 
