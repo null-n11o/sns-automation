@@ -8,6 +8,12 @@ export default async function PostsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { data: profile } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
   const { data: accounts } = await supabase
     .from('accounts')
     .select('id, account_name, platform')
@@ -26,7 +32,11 @@ export default async function PostsPage() {
           アカウントがありません。先に<Link href="/accounts" className="underline">アカウントを登録</Link>してください。
         </p>
       ) : (
-        <PostsTable initialPosts={posts ?? []} accounts={accounts} />
+        <PostsTable
+          initialPosts={posts ?? []}
+          accounts={accounts}
+          isAdmin={profile?.role === 'admin'}
+        />
       )}
     </div>
   )

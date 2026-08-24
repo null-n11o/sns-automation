@@ -67,6 +67,42 @@ export async function createAccount(formData: FormData) {
   return { error: null }
 }
 
+export async function updateAccountName(
+  accountId: string,
+  accountName: string,
+): Promise<{ error: string | null }> {
+  const name = accountName.trim()
+  if (!name) return { error: 'アカウント名は必須です' }
+
+  const profile = await getAdminProfile()
+  if (!profile) return { error: '管理者権限が必要です' }
+
+  const service = await createServiceClient()
+
+  // Verify the account belongs to the same company
+  const { data: account } = await service
+    .from('accounts')
+    .select('company_id')
+    .eq('id', accountId)
+    .single()
+
+  if (!account || account.company_id !== profile.company_id) {
+    return { error: '操作権限がありません' }
+  }
+
+  const { error } = await service
+    .from('accounts')
+    .update({ account_name: name })
+    .eq('id', accountId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/accounts')
+  revalidatePath(`/accounts/${accountId}`)
+  revalidatePath('/posts')
+  return { error: null }
+}
+
 export async function deleteAccount(accountId: string) {
   const profile = await getAdminProfile()
   if (!profile) return { error: '管理者権限が必要です' }
