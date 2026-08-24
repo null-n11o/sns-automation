@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AutoReplyForm } from './auto-reply-form'
+import { AccountNameForm } from './account-name-form'
 
 export default async function AccountSettingsPage({
   params,
@@ -44,15 +45,18 @@ export default async function AccountSettingsPage({
       </Link>
       <h1 className="text-xl font-semibold mt-2 mb-6">{account.account_name} の設定</h1>
 
-      <div className="bg-white rounded-lg shadow p-6 mb-6 text-sm space-y-1">
-        <p>
-          <span className="text-gray-500">プラットフォーム: </span>
-          {account.platform === 'x' ? 'X' : 'Threads'}
-        </p>
-        <p>
-          <span className="text-gray-500">投稿時刻: </span>
-          {account.posting_times.length > 0 ? account.posting_times.join(', ') : '—'}
-        </p>
+      <div className="bg-white rounded-lg shadow p-6 mb-6 space-y-4">
+        <AccountNameForm accountId={account.id} initialName={account.account_name} />
+        <div className="border-t pt-4 text-sm space-y-1">
+          <p>
+            <span className="text-gray-500">プラットフォーム: </span>
+            {account.platform === 'x' ? 'X' : 'Threads'}
+          </p>
+          <p>
+            <span className="text-gray-500">投稿時刻: </span>
+            {account.posting_times.length > 0 ? account.posting_times.join(', ') : '—'}
+          </p>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">

@@ -208,3 +208,55 @@ describe('PostsTable sorting and filters', () => {
     expect(screen.getAllByText(/投稿 5[6-9]|投稿 60/)).toHaveLength(5)
   })
 })
+
+describe('PostsTable account platform display', () => {
+  const mockAccounts = [
+    { id: 'acc-1', account_name: 'Account One', platform: 'x' },
+    { id: 'acc-2', account_name: 'Account Two', platform: 'threads' },
+  ]
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([]),
+      })
+    ))
+  })
+
+  it('アカウントタブにプラットフォーム名を表示する', () => {
+    render(<PostsTable initialPosts={[]} accounts={mockAccounts} />)
+
+    const xTab = screen.getByRole('button', { name: /Account One/ })
+    expect(xTab).toHaveTextContent('X')
+    const threadsTab = screen.getByRole('button', { name: /Account Two/ })
+    expect(threadsTab).toHaveTextContent('Threads')
+  })
+
+  it('選択中アカウントのプラットフォームを見出しに表示し、タブ切り替えで追従する', () => {
+    render(<PostsTable initialPosts={[]} accounts={mockAccounts} />)
+
+    expect(screen.getByText((_content, element) =>
+      element?.tagName.toLowerCase() === 'p' &&
+      element?.textContent?.replace(/\s+/g, ' ').trim() === 'Account One（X）'
+    )).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Account Two/ }))
+
+    expect(screen.getByText((_content, element) =>
+      element?.tagName.toLowerCase() === 'p' &&
+      element?.textContent?.replace(/\s+/g, ' ').trim() === 'Account Two（Threads）'
+    )).toBeInTheDocument()
+  })
+
+  it('管理者のときだけアカウント名変更リンクを表示する', () => {
+    const { rerender } = render(<PostsTable initialPosts={[]} accounts={mockAccounts} />)
+    expect(screen.queryByRole('link', { name: 'アカウント名を変更' })).not.toBeInTheDocument()
+
+    rerender(<PostsTable initialPosts={[]} accounts={mockAccounts} isAdmin />)
+    expect(screen.getByRole('link', { name: 'アカウント名を変更' })).toHaveAttribute(
+      'href',
+      '/accounts/acc-1',
+    )
+  })
+})

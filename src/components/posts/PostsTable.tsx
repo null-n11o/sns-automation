@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { PostStatusBadge } from './PostStatusBadge'
 import { CreatePostModal } from './CreatePostModal'
 import { Button } from '@/components/ui/button'
@@ -15,9 +16,17 @@ interface Account {
   platform: string
 }
 
+const PLATFORM_LABELS: Record<string, string> = {
+  x: 'X',
+  threads: 'Threads',
+}
+
+const platformLabel = (platform: string) => PLATFORM_LABELS[platform] ?? platform
+
 interface Props {
   initialPosts: Post[]
   accounts: Account[]
+  isAdmin?: boolean
 }
 
 const STATUSES: PostStatus[] = ['draft', 'review', 'ready', 'published', 'failed']
@@ -36,7 +45,7 @@ type StatusFilter = 'all' | PostStatus
 type SourceFilter = 'all' | PostSource
 type SortOrder = 'scheduled_desc' | 'scheduled_asc' | 'created_desc' | 'created_asc'
 
-export function PostsTable({ initialPosts, accounts }: Props) {
+export function PostsTable({ initialPosts, accounts, isAdmin = false }: Props) {
   const [posts, setPosts] = useState(initialPosts)
   const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id ?? '')
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -51,6 +60,8 @@ export function PostsTable({ initialPosts, accounts }: Props) {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortOrder, setSortOrder] = useState<SortOrder>('scheduled_desc')
+
+  const selectedAccount = accounts.find(a => a.id === selectedAccountId)
 
   const filteredPosts = posts
     .filter(p => p.account_id === selectedAccountId)
@@ -184,12 +195,21 @@ export function PostsTable({ initialPosts, accounts }: Props) {
               setSelectedAccountId(a.id)
               setCurrentPage(1)
             }}
-            className={`px-4 py-2 rounded text-sm font-medium ${
+            className={`flex items-center gap-2 px-4 py-2 rounded text-sm font-medium ${
               selectedAccountId === a.id
                 ? 'bg-gray-900 text-white'
                 : 'bg-white text-gray-700 border hover:bg-gray-50'
             }`}
           >
+            <span
+              className={`rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                selectedAccountId === a.id
+                  ? 'bg-white/20 text-white'
+                  : 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              {platformLabel(a.platform)}
+            </span>
             {a.account_name}
           </button>
         ))}
@@ -197,7 +217,23 @@ export function PostsTable({ initialPosts, accounts }: Props) {
 
       {/* アクション */}
       <div className="flex justify-between items-center mb-4">
-        <p className="text-sm text-gray-500">{filteredPosts.length} 件</p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-gray-500">{filteredPosts.length} 件</p>
+          {selectedAccount && (
+            <p className="text-sm text-gray-500">
+              <span className="font-medium text-gray-900">{selectedAccount.account_name}</span>
+              <span className="ml-1">（{platformLabel(selectedAccount.platform)}）</span>
+              {isAdmin && (
+                <Link
+                  href={`/accounts/${selectedAccount.id}`}
+                  className="ml-2 text-blue-600 hover:underline"
+                >
+                  アカウント名を変更
+                </Link>
+              )}
+            </p>
+          )}
+        </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
