@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { PostsTable } from '@/components/posts/PostsTable'
+import { withLatestMetrics } from '@/lib/analytics/latest-metrics'
+import type { Post, PostMetrics } from '@/types'
 
 export default async function PostsPage() {
   const supabase = await createClient()
@@ -21,7 +23,7 @@ export default async function PostsPage() {
 
   const { data: posts } = await supabase
     .from('posts')
-    .select('*')
+    .select('*, post_metrics(impressions, likes, reposts, replies, fetched_at)')
     .order('scheduled_date')
 
   return (
@@ -33,7 +35,9 @@ export default async function PostsPage() {
         </p>
       ) : (
         <PostsTable
-          initialPosts={posts ?? []}
+          initialPosts={withLatestMetrics(
+            (posts ?? []) as (Post & { post_metrics: PostMetrics[] })[]
+          )}
           accounts={accounts}
           isAdmin={profile?.role === 'admin'}
         />

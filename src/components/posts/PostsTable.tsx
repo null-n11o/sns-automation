@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { Post, PostSource, PostStatus } from '@/types'
+import type { Post, PostMetrics, PostSource, PostStatus } from '@/types'
 
 interface Account {
   id: string
@@ -23,8 +23,19 @@ const PLATFORM_LABELS: Record<string, string> = {
 
 const platformLabel = (platform: string) => PLATFORM_LABELS[platform] ?? platform
 
+type PostRow = Post & { latest_metrics?: PostMetrics | null }
+
+type MetricField = 'impressions' | 'likes' | 'reposts' | 'replies'
+
+const METRIC_COLUMNS: { field: MetricField; label: string }[] = [
+  { field: 'impressions', label: '表示' },
+  { field: 'likes', label: 'いいね' },
+  { field: 'reposts', label: 'リポスト' },
+  { field: 'replies', label: 'リプライ' },
+]
+
 interface Props {
-  initialPosts: Post[]
+  initialPosts: PostRow[]
   accounts: Account[]
   isAdmin?: boolean
 }
@@ -310,13 +321,18 @@ export function PostsTable({ initialPosts, accounts, isAdmin = false }: Props) {
       </div>
 
       {/* テーブル */}
-      <div className="bg-white rounded shadow overflow-hidden">
+      <div className="bg-white rounded shadow overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="text-left p-4 text-sm font-medium">本文</th>
               <th className="text-left p-4 text-sm font-medium">予約日時</th>
               <th className="text-left p-4 text-sm font-medium">ステータス</th>
+              {METRIC_COLUMNS.map(({ field, label }) => (
+                <th key={field} className="text-right p-4 text-sm font-medium whitespace-nowrap">
+                  {label}
+                </th>
+              ))}
               <th className="text-left p-4 text-sm font-medium">ソース</th>
               <th className="text-left p-4 text-sm font-medium">操作</th>
             </tr>
@@ -389,6 +405,29 @@ export function PostsTable({ initialPosts, accounts, isAdmin = false }: Props) {
                     </SelectContent>
                   </Select>
                 </td>
+                {METRIC_COLUMNS.map(({ field }) => (
+                  <td
+                    key={field}
+                    className="p-4 text-right text-sm tabular-nums whitespace-nowrap"
+                    title={
+                      post.latest_metrics
+                        ? `取得日時: ${new Date(post.latest_metrics.fetched_at).toLocaleString('ja-JP')}`
+                        : undefined
+                    }
+                  >
+                    {post.status !== 'published' ? (
+                      <span className="text-gray-300">-</span>
+                    ) : post.latest_metrics ? (
+                      <span className="text-gray-700">
+                        {post.latest_metrics[field].toLocaleString()}
+                      </span>
+                    ) : field === 'impressions' ? (
+                      <span className="text-xs text-gray-400">未取得</span>
+                    ) : (
+                      <span className="text-gray-300">-</span>
+                    )}
+                  </td>
+                ))}
                 <td className="p-4">
                   <span className="text-xs text-gray-500">{post.source === 'ai' ? 'AI' : '手動'}</span>
                 </td>
@@ -425,7 +464,7 @@ export function PostsTable({ initialPosts, accounts, isAdmin = false }: Props) {
             ))}
             {!filteredPosts.length && (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-gray-400 text-sm">
+                <td colSpan={5 + METRIC_COLUMNS.length} className="p-8 text-center text-gray-400 text-sm">
                   投稿がありません。「+ 新規投稿」から作成してください。
                 </td>
               </tr>

@@ -260,3 +260,74 @@ describe('PostsTable account platform display', () => {
     )
   })
 })
+
+describe('PostsTable Metrics Columns', () => {
+  const accounts = [{ id: 'acc-1', account_name: 'Account One', platform: 'threads' }]
+
+  const basePost = {
+    account_id: 'acc-1',
+    image_url: null,
+    scheduled_date: '2026-08-20T10:00:00.000Z',
+    source: 'manual' as const,
+    error_message: null,
+    platform_post_id: null,
+    created_at: '2026-08-20T10:00:00.000Z',
+  }
+
+  const renderRow = (post: Parameters<typeof PostsTable>[0]['initialPosts'][number]) => {
+    render(<PostsTable initialPosts={[post]} accounts={accounts} />)
+    return screen.getAllByRole('row')[1]
+  }
+
+  it('公開済みでメトリクスがあるときは各指標の数値を表示する', () => {
+    const row = renderRow({
+      ...basePost,
+      id: 'post-published',
+      content: '公開済みの投稿',
+      status: 'published',
+      published_at: '2026-08-20T10:05:00.000Z',
+      latest_metrics: {
+        id: 'm-1',
+        post_id: 'post-published',
+        fetched_at: '2026-08-21T10:05:00.000Z',
+        impressions: 12430,
+        likes: 88,
+        reposts: 4,
+        replies: 12,
+      },
+    })
+
+    expect(row).toHaveTextContent('12,430')
+    expect(row).toHaveTextContent('88')
+    expect(row).toHaveTextContent('4')
+    expect(row).toHaveTextContent('12')
+  })
+
+  it('公開済みでメトリクス未取得のときは「未取得」を表示する', () => {
+    const row = renderRow({
+      ...basePost,
+      id: 'post-no-metrics',
+      content: 'メトリクス未取得の投稿',
+      status: 'published',
+      published_at: '2026-08-20T10:05:00.000Z',
+      latest_metrics: null,
+    })
+
+    expect(row).toHaveTextContent('未取得')
+  })
+
+  it('未公開の投稿ではメトリクス欄を「-」にする', () => {
+    const row = renderRow({
+      ...basePost,
+      id: 'post-draft',
+      content: '下書きの投稿',
+      status: 'draft',
+      published_at: null,
+    })
+
+    expect(row).not.toHaveTextContent('未取得')
+    const cells = row.querySelectorAll('td.tabular-nums')
+    expect(cells).toHaveLength(4)
+    cells.forEach(cell => expect(cell.textContent).toBe('-'))
+  })
+})

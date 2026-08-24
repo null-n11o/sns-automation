@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { withLatestMetrics } from '@/lib/analytics/latest-metrics'
+import type { Post, PostMetrics } from '@/types'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -9,12 +11,17 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const accountId = searchParams.get('account_id')
 
-  let query = supabase.from('posts').select('*').order('scheduled_date')
+  let query = supabase
+    .from('posts')
+    .select('*, post_metrics(impressions, likes, reposts, replies, fetched_at)')
+    .order('scheduled_date')
   if (accountId) query = query.eq('account_id', accountId)
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json(data)
+  return NextResponse.json(
+    withLatestMetrics((data ?? []) as (Post & { post_metrics: PostMetrics[] })[])
+  )
 }
 
 export async function POST(request: Request) {
