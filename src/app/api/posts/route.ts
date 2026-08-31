@@ -14,7 +14,8 @@ export async function GET(request: Request) {
   let query = supabase
     .from('posts')
     .select('*, post_metrics(impressions, likes, reposts, replies, fetched_at)')
-    .order('scheduled_date')
+    // Fetch newest posts first so the database row limit does not discard them.
+    .order('scheduled_date', { ascending: false })
   if (accountId) query = query.eq('account_id', accountId)
 
   const { data, error } = await query
