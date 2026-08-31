@@ -131,7 +131,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       .from('posts')
       .select('id, content, image_url, scheduled_date, status, source, created_at')
       .eq('account_id', account_id)
-      .order('scheduled_date')
+      // Fetch newest posts first so response/display limits retain recent posts.
+      .order('scheduled_date', { ascending: false })
 
     if (status) query = query.eq('status', status)
 
