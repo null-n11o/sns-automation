@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AutoReplyForm } from './auto-reply-form'
 import { AccountNameForm } from './account-name-form'
+import { ThreadsTokenForm } from './threads-token-form'
 
 export default async function AccountSettingsPage({
   params,
@@ -26,7 +27,7 @@ export default async function AccountSettingsPage({
 
   const { data: account } = await supabase
     .from('accounts')
-    .select('id, platform, account_name, posting_times, auto_reply_config, company_id')
+    .select('id, platform, account_name, posting_times, auto_reply_config, access_token, company_id')
     .eq('id', id)
     .single()
 
@@ -58,6 +59,19 @@ export default async function AccountSettingsPage({
           </p>
         </div>
       </div>
+
+      {account.platform === 'threads' && (
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-sm font-medium mb-1">Threads API</h2>
+          <p className="text-xs text-gray-500 mb-4">
+            Meta for Developersで生成した長期アクセストークンを設定します。
+          </p>
+          <ThreadsTokenForm
+            accountId={account.id}
+            initialHasToken={Boolean(account.access_token)}
+          />
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-sm font-medium mb-4">自動リプライ設定</h2>
