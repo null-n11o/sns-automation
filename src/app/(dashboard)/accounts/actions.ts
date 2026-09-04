@@ -103,6 +103,73 @@ export async function updateAccountName(
   return { error: null }
 }
 
+interface ThreadsProfileResponse {
+  id?: string
+  username?: string
+}
+
+export async function updateThreadsAccessToken(
+  accountId: string,
+  accessToken: string,
+): Promise<{ error: string | null; username?: string }> {
+  const token = accessToken.trim()
+  if (!token) return { error: 'アクセストークンを入力してください' }
+  if (token.length > 4096) return { error: 'アクセストークンが長すぎます' }
+
+  const profile = await getAdminProfile()
+  if (!profile) return { error: '管理者権限が必要です' }
+
+  const service = await createServiceClient()
+  const { data: account } = await service
+    .from('accounts')
+    .select('company_id, platform, platform_user_id')
+    .eq('id', accountId)
+    .single()
+
+  if (!account || account.company_id !== profile.company_id) {
+    return { error: '操作権限がありません' }
+  }
+  if (account.platform !== 'threads') {
+    return { error: 'Threadsアカウントのみ更新できます' }
+  }
+
+  const url = new URL('https://graph.threads.net/v1.0/me')
+  url.searchParams.set('fields', 'id,username')
+  url.searchParams.set('access_token', token)
+
+  let threadsProfile: ThreadsProfileResponse
+  try {
+    const response = await fetch(url, { cache: 'no-store' })
+    if (!response.ok) {
+      return { error: 'アクセストークンが無効または期限切れです' }
+    }
+    threadsProfile = (await response.json()) as ThreadsProfileResponse
+  } catch {
+    return { error: 'Threads APIに接続できませんでした。時間をおいて再試行してください' }
+  }
+
+  if (!threadsProfile.id) {
+    return { error: 'アクセストークンからThreadsユーザーを確認できませんでした' }
+  }
+  if (account.platform_user_id && threadsProfile.id !== account.platform_user_id) {
+    return { error: 'このアカウントとは異なるThreadsユーザーのトークンです' }
+  }
+
+  const { error } = await service
+    .from('accounts')
+    .update({
+      access_token: encrypt(token),
+      platform_user_id: threadsProfile.id,
+    })
+    .eq('id', accountId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/accounts')
+  revalidatePath(`/accounts/${accountId}`)
+  return { error: null, username: threadsProfile.username }
+}
+
 export async function deleteAccount(accountId: string) {
   const profile = await getAdminProfile()
   if (!profile) return { error: '管理者権限が必要です' }
